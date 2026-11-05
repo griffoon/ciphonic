@@ -1,6 +1,6 @@
 [package]
 name = "volna"
-version = "0.1.0"
+version = "0.2.0"
 description = "Волна — Yandex Music client for Windows"
 authors = ["griffoonchik"]
 license = "MIT"
