@@ -344,6 +344,8 @@
     const date = h("div.idle-date");
     const closeBtn = h("button.idle-close.glass", { title: "Закрыть", onclick: () => close() }, V.icon("xmark"));
     const layer = h("div.idle", canvas,
+      // Scrims under the text and the clock so they read over the brightest glyphs.
+      h("div.idle-scrim"),
       h("div.idle-center", artist, title, h("div.idle-controls",
         h("button.idle-btn", { onclick: () => P.previous() }, V.glyph("previous", 16)),
         playBtn,

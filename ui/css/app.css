@@ -1463,9 +1463,34 @@ body.has-sheet .root { border-radius: 18px; }
   text-align: center;
   pointer-events: none;
 }
-.idle-artist { font: 44px var(--display); line-height: 1.05; text-shadow: 0 0 18px rgba(0, 0, 0, 0.6); max-width: 90%; overflow-wrap: anywhere; }
-.idle-title { font: 500 15px var(--mono); color: rgba(255, 255, 255, 0.75); }
-.idle-controls { display: flex; gap: 44px; margin-top: 10px; pointer-events: auto; }
+.idle-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 560px 260px at 50% calc(50% - 80px), rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0) 75%),
+    linear-gradient(rgba(0, 0, 0, 0) 68%, rgba(0, 0, 0, 0.88));
+}
+.idle-artist {
+  font: 44px var(--display);
+  line-height: 1.05;
+  text-shadow: 0 0 6px #000, 0 0 18px #000, 0 0 36px rgba(0, 0, 0, 0.9);
+  max-width: 90%;
+  overflow-wrap: anywhere;
+}
+.idle-title { font: 500 15px var(--mono); color: rgba(255, 255, 255, 0.85); text-shadow: 0 0 6px #000, 0 0 14px #000; }
+.idle-controls {
+  display: flex;
+  gap: 30px;
+  margin-top: 10px;
+  padding: 4px 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+}
+.idle-time, .idle-date { text-shadow: 0 0 8px #000, 0 0 24px #000; }
 .idle-btn { width: 54px; height: 54px; display: grid; place-items: center; color: rgba(255, 255, 255, 0.85); transition: transform var(--snappy-ms) var(--snappy); }
 .idle-btn:active { transform: scale(0.88); }
 .idle-clock { position: absolute; left: 0; right: 0; bottom: 18px; display: grid; justify-items: center; gap: 4px; pointer-events: none; }
