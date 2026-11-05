@@ -12,6 +12,8 @@ mod player;
 mod stream;
 mod wave;
 
+use std::sync::Mutex;
+
 use auth::Session;
 use player::Player;
 use tauri::{AppHandle, Emitter, Manager};
@@ -21,19 +23,64 @@ async fn current_session() -> Result<Option<Session>, String> {
     auth::current_session().await
 }
 
-/// Resolves the stream, loads it into the player and starts it. Returns what is playing.
-#[tauri::command]
-async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result<stream::StreamSource, String> {
+/// A track resolved and downloaded ahead of time, so switching to it starts at once.
+struct Prepared {
+    track_id: String,
+    quality: String,
+    source: stream::StreamSource,
+    input: player::Source,
+}
+
+#[derive(Default)]
+struct Preloaded(Mutex<Option<Prepared>>);
+
+/// Stream link plus the audio itself: a decrypted temp file, or the bytes of a direct link.
+async fn prepare(track_id: &str, quality: &str) -> Result<(stream::StreamSource, player::Source), String> {
     let (token, _) = auth::account().await?;
-    let source = stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await?;
+    let source = stream::resolve(&token, track_id, stream::Quality::parse(quality)).await?;
     let input = if source.local {
         player::Source::File(source.location.clone().into())
     } else {
         let data = api::download_bytes(&source.location).await?;
         player::Source::Bytes { data, ext: stream::extension(&source.codec).to_owned() }
     };
+    Ok((source, input))
+}
+
+fn lock_preloaded(app: &AppHandle) -> std::sync::MutexGuard<'_, Option<Prepared>> {
+    app.state::<Preloaded>().inner().0.lock().unwrap_or_else(|p| p.into_inner())
+}
+
+/// Resolves the stream (or takes the preloaded one), loads it into the player and starts it.
+#[tauri::command]
+async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result<stream::StreamSource, String> {
+    let ready = {
+        let mut slot = lock_preloaded(&app);
+        match slot.take() {
+            Some(p) if p.track_id == track_id && p.quality == quality => Some(p),
+            other => {
+                *slot = other;
+                None
+            }
+        }
+    };
+    let (source, input) = match ready {
+        Some(prepared) => (prepared.source, prepared.input),
+        None => prepare(&track_id, &quality).await?,
+    };
     app.state::<Player>().load(input)?;
     Ok(source)
+}
+
+/// Gets the next track ready while this one plays (PlayerEngine.preloadNext).
+#[tauri::command]
+async fn preload_track(app: AppHandle, track_id: String, quality: String) -> Result<(), String> {
+    if lock_preloaded(&app).as_ref().is_some_and(|p| p.track_id == track_id && p.quality == quality) {
+        return Ok(());
+    }
+    let (source, input) = prepare(&track_id, &quality).await?;
+    *lock_preloaded(&app) = Some(Prepared { track_id, quality, source, input });
+    Ok(())
 }
 
 /// Reports a listen to play-audio. The start report has played 0; the end report has the seconds heard.
@@ -105,6 +152,7 @@ fn main() {
             // Opening the audio device can fail (no output); that is a startup error, not a crash later.
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
+            app.manage(Preloaded::default());
             analysis::start(app.handle().clone());
             if let Err(e) = media::init(app.handle()) {
                 eprintln!("[media] no media keys: {e}");
@@ -117,6 +165,7 @@ fn main() {
             login_with_token,
             logout,
             play_track,
+            preload_track,
             set_playing,
             set_volume,
             seek,

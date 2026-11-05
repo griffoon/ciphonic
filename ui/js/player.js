@@ -115,6 +115,14 @@
     if (track && P.isWave) waveEvent("skip", track, elapsed, `skip ${elapsed.toFixed(1)}s`);
   }
 
+  /// Gets the next track resolved and downloaded while this one plays, so switching is instant.
+  function preloadNext() {
+    const next = P.repeatMode === "one" ? null : P.nextTrack;
+    if (!next || next.available === false) return;
+    V.invoke("preload_track", { trackId: next.id, quality: V.store.get("quality", "high") })
+      .catch((error) => log(`preload | ${describe(error)}`));
+  }
+
   // ---------- loading ----------
   async function loadCurrent() {
     const track = P.current;
@@ -142,6 +150,7 @@
       if (P.isWave) waveEvent("trackStarted", track, 0, "trackStarted");
       beginListen(track);
       if (P.isWave && P.queue.length - P.index <= REFILL_THRESHOLD) refillWave(false);
+      preloadNext();
       V.invoke("media_update", {
         title: V.fullTitle(track), artist: track.artists,
         cover: V.coverSize(track.cover, 400) || null, durationMs: track.durationMs || 0,
@@ -182,6 +191,8 @@
       if (thenAdvance && P.index + 1 < P.queue.length) {
         P.index += 1;
         loadCurrent();
+      } else {
+        preloadNext();
       }
     } catch (error) {
       log(`wave more | ${describe(error)}`);
@@ -320,6 +331,7 @@
     if (!P.current) return P.play([track]);
     P.queue.splice(P.index + 1, 0, track);
     changed();
+    preloadNext();
   };
 
   P.enqueue = (track) => {
