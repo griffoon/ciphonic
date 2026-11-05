@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Волна</title>
+  <style>
+    @font-face {
+      font-family: "Dela Gothic One";
+      src: url("fonts/DelaGothicOne-Regular.ttf") format("truetype");
+    }
+    :root {
+      --bg: #050506;
+      --fg: #e9e9ec;
+      --dim: #6b6b74;
+      --accent: #c6ff00;
+      --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      background: var(--bg); color: var(--fg);
+      font-family: var(--mono);
+      overflow: hidden;
+    }
+    .app { display: grid; grid-template-columns: 200px 1fr; height: 100vh; }
+    nav { border-right: 1px solid #1a1a1f; padding: 20px 14px; }
+    .logo {
+      font-family: "Dela Gothic One", var(--mono);
+      font-size: 28px; color: var(--accent); margin: 0 0 24px;
+    }
+    nav a {
+      display: block; padding: 8px 10px; color: var(--dim);
+      text-decoration: none; cursor: pointer;
+      transition: color .25s ease, transform .35s cubic-bezier(.2,.8,.2,1);
+    }
+    nav a:hover { color: var(--fg); transform: translateX(3px); }
+    nav a.on { color: var(--accent); }
+    main { padding: 28px 32px; overflow: auto; }
+    .screen { display: none; animation: rise .45s cubic-bezier(.2,.8,.2,1); }
+    .screen.on { display: block; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    h1 { font-family: "Dela Gothic One", var(--mono); font-weight: 400; font-size: 34px; margin: 0 0 8px; }
+    .sub { color: var(--dim); margin: 0 0 24px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav>
+      <p class="logo">ВОЛНА</p>
+      <a data-screen="wave" class="on">моя волна</a>
+      <a data-screen="library">коллекция</a>
+      <a data-screen="search">поиск</a>
+      <a data-screen="now">сейчас играет</a>
+    </nav>
+    <main>
+      <section class="screen on" id="wave"><h1>Моя волна</h1><p class="sub">// заглушка, вход и поток — итерации 2–6</p></section>
+      <section class="screen" id="library"><h1>Коллекция</h1><p class="sub">// мне нравится | плейлисты</p></section>
+      <section class="screen" id="search"><h1>Поиск</h1><p class="sub">// итерация 3</p></section>
+      <section class="screen" id="now"><h1>Сейчас играет</h1><p class="sub">// итерация 7–8</p></section>
+    </main>
+  </div>
+  <script>
+    const links = document.querySelectorAll("nav a");
+    links.forEach((a) => a.addEventListener("click", () => {
+      links.forEach((x) => x.classList.toggle("on", x === a));
+      document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === a.dataset.screen));
+    }));
+  </script>
+</body>
+</html>
