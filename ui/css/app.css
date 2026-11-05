@@ -544,11 +544,10 @@ body.has-sheet .root { border-radius: 18px; }
 .wave-scroll::-webkit-scrollbar { display: none; }
 .wave-hero { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; }
 .scrim, .wave-scrim { transition: opacity 0.2s linear; }
+/* In the flow under the controls, like the iOS hero's last row; the dock sits below it. */
 .scroll-hint {
-  position: absolute;
-  bottom: 94px;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: none;
+  margin: 6px 0 100px;
   display: grid;
   justify-items: center;
   gap: 1px;
@@ -682,6 +681,9 @@ body.has-sheet .root { border-radius: 18px; }
 .island {
   position: absolute;
   top: 17px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
   height: 34px;
   padding: 0 18px;
   border-radius: 999px;
@@ -717,7 +719,8 @@ body.has-sheet .root { border-radius: 18px; }
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 92px 0 150px;
+  padding: 84px 0 0;
+  min-height: 0;
   z-index: 2;
 }
 .wave-center > * { flex: none; }

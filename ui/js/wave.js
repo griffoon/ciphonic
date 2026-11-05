@@ -146,7 +146,7 @@
         headline.classList.toggle("long", text.length > 18);
       }
       page.classList.toggle("has-track", hasTrack());
-      likeBtn.innerHTML = V.icons[P.isLiked(track) ? "heartFill" : "heart"];
+      likeBtn.replaceChildren(V.icon(P.isLiked(track) ? "heartFill" : "heart"));
       likeBtn.classList.toggle("liked", P.isLiked(track));
       pill.render();
       playBtn.replaceChildren(P.isLoading ? h("span.spinner.dark") : V.glyph(hasTrack() && P.isPlaying ? "pause" : "play", 30));
@@ -185,10 +185,13 @@
       if (P.isWave && P.current) P.startWave();
     }
 
-    // Fit the cover to the height between the toolbar and the tab bar.
+    // Fit the cover to the height between the toolbar and the tab bar: the iOS rule (a third of
+    // the screen, 160…280), but never more than what is left after the other rows.
+    const OTHER_ROWS = 84 + 56 + 50 + 96 + 32 + 14 * 5 + 150;
     function resize() {
       const available = page.clientHeight;
-      const size = Math.min(Math.max(available * 0.34, 160), 280);
+      const room = available - OTHER_ROWS;
+      const size = Math.max(120, Math.min(available * 0.34, 280, room));
       deck.style.height = `${size}px`;
       deck.firstChild.style.width = `${size}px`;
       deck.firstChild.style.height = `${size}px`;
