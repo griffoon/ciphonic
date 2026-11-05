@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"Main window: app commands and event listening only","local":true,"windows":["main"],"permissions":["core:default"]}}

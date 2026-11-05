@@ -18,6 +18,7 @@
         "decorations": true
       }
     ],
+    "withGlobalTauri": true,
     "security": {
       "csp": "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
     }
