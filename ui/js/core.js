@@ -118,7 +118,8 @@ window.V = window.V || {};
   }
 
   /// Animates a number with a critically damped spring (for scroll follow and drags).
-  V.animateValue = function animateValue(from, to, duration, onFrame) {
+  /// `onDone` runs once, when the value has landed; the returned function cancels without it.
+  V.animateValue = function animateValue(from, to, duration, onFrame, onDone) {
     const omega = (2 * Math.PI) / duration;
     const start = performance.now();
     let cancelled = false;
@@ -126,9 +127,13 @@ window.V = window.V || {};
       if (cancelled) return;
       const t = (now - start) / 1000;
       const p = 1 - Math.exp(-omega * t) * (1 + omega * t);
-      onFrame(from + (to - from) * p);
-      if (p < 0.9995) requestAnimationFrame(frame);
-      else onFrame(to);
+      if (p < 0.998) {
+        onFrame(from + (to - from) * p);
+        requestAnimationFrame(frame);
+      } else {
+        onFrame(to);
+        onDone?.();
+      }
     }
     requestAnimationFrame(frame);
     return () => { cancelled = true; };

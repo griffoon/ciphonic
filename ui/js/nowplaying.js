@@ -24,6 +24,10 @@
       return el;
     }
     function render() {
+      cancelSettle?.();
+      cancelSettle = null;
+      drag = 0;
+      peek = null;
       stage.replaceChildren();
       card = makeCard(P.current, null);
       V.kickBounce(card.firstChild);
@@ -50,23 +54,26 @@
         peek.style.transform = `translateX(${x}px) scale(${0.9 + 0.1 * progress})`;
       }
     }
+    let cancelSettle = null;
+    /// Springs the card to `target`; only when it has landed does the switch happen and the
+    /// deck reset, so a late frame can never drag the old card back out.
     function settle(target, then) {
-      const from = drag;
-      V.animateValue(from, target, target === 0 ? 0.35 : 0.3, (value) => {
+      cancelSettle?.();
+      cancelSettle = V.animateValue(drag, target, target === 0 ? 0.35 : 0.28, (value) => {
         drag = value;
         layout();
-      });
-      setTimeout(() => {
-        then?.();
+      }, () => {
+        cancelSettle = null;
         drag = 0;
         peek?.remove();
         peek = null;
         if (card) card.style.transform = "";
-      }, target === 0 ? 380 : 300);
+        then?.();
+      });
     }
 
     deck.addEventListener("pointerdown", (event) => {
-      if (!P.current) return;
+      if (!P.current || cancelSettle) return;
       active = true;
       horizontal = null;
       startX = lastX = event.clientX;
