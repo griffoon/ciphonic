@@ -179,6 +179,16 @@ window.V = window.V || {};
     turnForward: stroke('<path d="M4 18v-5a5 5 0 0 1 5-5h11"/><path d="m16 4 4 4-4 4"/>'),
     playSmall: fill('<path d="M7 4.5v15l12-7.5z"/>'),
     refresh: stroke('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+    info: stroke('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'),
+    share: stroke('<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7.5h14V12"/>'),
+    listPlus: stroke('<path d="M3 6h12M3 12h12M3 18h7M17 15v6M14 18h6"/>'),
+    expand: stroke('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),
+    play: stroke('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9v6l5-3z" fill="currentColor"/>'),
+    history: stroke('<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 3.5v5h5M12 7.5V12l3 2"/>'),
+    pencil: stroke('<path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/>'),
+    globe: stroke('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+    lock: stroke('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>'),
+    trash: stroke('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
     arrowUpRight: stroke('<path d="M7 17 17 7M9 7h8v8"/>', "0 0 24 24"),
   };
 

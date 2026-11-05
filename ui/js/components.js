@@ -54,7 +54,7 @@
   };
 
   // ---------- track rows (TrackRow + TrackList) ----------
-  function trackRow(track, number, onPlay) {
+  function trackRow(track, number, onPlay, menuExtra = null) {
     const isCurrent = () => P.current?.id === track.id;
     const lead = number !== null
       ? h("div.tr-num", String(number).padStart(2, "0"))
@@ -63,7 +63,7 @@
     const row = h("div.track-row", {
       tabindex: "0",
       onclick: onPlay,
-      oncontextmenu: (event) => { event.preventDefault(); V.menu.open(event, V.trackMenu(track)); },
+      oncontextmenu: (event) => { event.preventDefault(); V.menu.open(event, V.trackMenu(track, menuExtra?.() || [])); },
       onkeydown: (event) => { if (event.key === "Enter") onPlay(); },
     },
       lead,
@@ -71,7 +71,7 @@
       h("div.tr-time", track.durationMs ? V.time(track.durationMs / 1000) : ""),
       h("button.tr-more", {
         title: "Ещё",
-        onclick: (event) => { event.stopPropagation(); V.menu.open(event.currentTarget, V.trackMenu(track)); },
+        onclick: (event) => { event.stopPropagation(); V.menu.open(event.currentTarget, V.trackMenu(track, menuExtra?.() || [])); },
       }, V.icon("ellipsis")),
     );
     if (track.available === false) row.classList.add("unavailable");
@@ -92,10 +92,11 @@
   }
   V.trackRow = trackRow;
 
-  /// Plays `tracks` starting from the clicked row.
-  V.trackList = (tracks, { numbered = false } = {}) => {
+  /// Plays `tracks` starting from the clicked row. `menuExtra(index)` adds row menu items.
+  V.trackList = (tracks, { numbered = false, menuExtra = null } = {}) => {
     const list = h("div.track-list");
-    const rows = tracks.map((track, i) => trackRow(track, numbered ? i + 1 : null, () => P.play(tracks, i)));
+    const rows = tracks.map((track, i) => trackRow(track, numbered ? i + 1 : null, () => P.play(tracks, i),
+      menuExtra ? () => menuExtra(i, track) : null));
     list.append(...rows);
     const off = V.on("player", () => {
       if (!list.isConnected) return off();
@@ -184,14 +185,20 @@
   };
 
   /// Long-press actions shared by every track row and the player (TrackMenu.swift).
-  V.trackMenu = (track) => {
+  /// `extra` adds items for the place the row is in (e.g. «убрать» in an own playlist).
+  V.trackMenu = (track, extra = []) => {
     const liked = P.isLiked(track);
     const items = [
       { label: "Играть следующим", icon: "playNext", action: () => { P.playNext(track); V.toast("> следующим"); } },
       { label: "В конец очереди", icon: "playLast", action: () => { P.enqueue(track); V.toast("> в очереди"); } },
       "-",
+      { label: "Похожие треки", icon: "album", action: () => V.route.destination("similar", { track }) },
       { label: "Волна по треку", icon: "radiowaves", action: () => P.startWave([`track:${track.id}`], "Волна по треку") },
       { label: liked ? "Убрать из любимых" : "Нравится", icon: liked ? "heartSlash" : "heart", action: () => P.toggleLike(track) },
+      { label: "О треке", icon: "info", action: () => V.route.destination("about", { track }) },
+      { label: "Поделиться", icon: "share", action: () => V.share(V.trackLink(track)) },
+      { label: "Добавить в плейлист", icon: "listPlus", action: () => V.route.destination("addToPlaylist", { track }) },
+      ...extra,
       { label: "Не рекомендовать", icon: "thumbsDown", destructive: true, action: () => P.dislike(track) },
       "-",
     ];

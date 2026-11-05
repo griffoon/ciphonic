@@ -37,7 +37,7 @@ pub struct ArtistPage {
 }
 
 /// Full tracks for `id:albumId` refs, fetched in batches.
-async fn tracks_by_refs(token: &str, refs: &[String]) -> Result<Vec<TrackView>, String> {
+pub async fn tracks_by_refs(token: &str, refs: &[String]) -> Result<Vec<TrackView>, String> {
     let mut tracks = Vec::with_capacity(refs.len());
     for chunk in refs.chunks(TRACK_BATCH) {
         let batch = api::post_form(token, "tracks", &[("track-ids", chunk.join(","))]).await?;

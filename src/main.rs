@@ -4,6 +4,7 @@ mod analysis;
 mod api;
 mod auth;
 mod catalog;
+mod extras;
 mod feed;
 mod lyrics;
 mod media;
@@ -183,6 +184,18 @@ fn main() {
             catalog::cover_data,
             feed::home_feed,
             feed::albums,
+            extras::history,
+            extras::similar_tracks,
+            extras::credits,
+            extras::find_clip,
+            extras::open_url,
+            extras::playlist_page,
+            extras::create_playlist,
+            extras::rename_playlist,
+            extras::set_playlist_public,
+            extras::delete_playlist,
+            extras::add_to_playlist,
+            extras::remove_from_playlist,
             wave::wave_start,
             wave::wave_more,
             wave::wave_feedback,

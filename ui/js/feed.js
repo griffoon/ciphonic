@@ -114,8 +114,14 @@
       return h("div.feed-tracks", tracks.map((track, i) => V.trackRow(track, numbered ? i + 1 : null, () => P.play(tracks, i))));
     }
 
-    function render(home) {
+    function render(home, days) {
       const sections = [];
+      const recent = V.recentContexts(days);
+      if (recent.length) {
+        sections.push(section("недавно слушал",
+          () => V.route.push("history", { title: "История" }),
+          () => shelfOf(recent.map(V.recentCard))));
+      }
       if (home.generated.length) {
         sections.push(section("собрано для тебя",
           pushGrid("Собрано для тебя", "feed | generated", home.generated, V.feedPlaylistCard),
@@ -161,7 +167,11 @@
       refreshIcon.classList.add("spinning");
       if (force || !body.querySelector(".feed-section")) body.replaceChildren(V.loading());
       try {
-        render(await V.invoke("home_feed"));
+        const [home, days] = await Promise.all([
+          V.invoke("home_feed"),
+          V.invoke("history").catch(() => []),
+        ]);
+        render(home, days);
       } catch (error) {
         body.replaceChildren(h("div.feed-empty", "> подборки не загрузились"), V.errorBanner(String(error), () => load(true)));
       } finally {

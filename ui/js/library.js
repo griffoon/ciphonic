@@ -59,13 +59,91 @@
       return h("div.content", header, actions, listHost);
     },
 
+    /// A playlist; the user's own ones can be renamed, made public or private, deleted, and
+    /// tracks removed from them (PlaylistView.swift).
     playlist(playlist) {
-      return loader(() => V.invoke("playlist_tracks", { id: playlist.id }), (tracks) => h("div.content",
-        V.collectionHeader({
-          kind: "playlist", title: playlist.title, subtitle: `${tracks.length} трк`, cover: playlist.cover,
-          play: () => P.play(tracks), shuffle: () => P.play(shuffled(tracks)),
-        }),
-        V.trackList(tracks, { numbered: true })));
+      const host = h("div.content", V.loading());
+      const isOwn = playlist.id.startsWith(`${V.session?.uid}:`);
+      const [owner, kind] = playlist.id.split(":");
+      let title = playlist.title;
+      let page = null;
+
+      async function load() {
+        try {
+          page = await V.invoke("playlist_page", { id: playlist.id });
+          render();
+        } catch (error) {
+          host.replaceChildren(V.errorBanner(String(error), load));
+        }
+      }
+
+      function render() {
+        const tracks = page.tracks;
+        const isPublic = page.visibility === "public";
+        const chips = h("div.chip-row",
+          h("button.action-chip", { onclick: () => V.share(`https://music.yandex.ru/users/${owner}/playlists/${kind}`) },
+            V.icon("share"), "поделиться"),
+          isOwn ? h("button.action-chip", { onclick: (e) => V.menu.open(e.currentTarget, editMenu(isPublic)) }, V.icon("pencil"), "изменить") : null);
+        host.replaceChildren(
+          V.collectionHeader({
+            kind: isOwn ? `playlist | ${isPublic ? "public" : "private"}` : "playlist",
+            title, subtitle: `${tracks.length} трк`, cover: playlist.cover,
+            play: () => P.play(tracks), shuffle: () => P.play(shuffled(tracks)),
+          }),
+          chips,
+          V.trackList(tracks, {
+            numbered: true,
+            menuExtra: isOwn ? (index) => [{ label: "Убрать из плейлиста", icon: "trash", destructive: true, action: () => remove(index) }] : null,
+          }));
+      }
+
+      function editMenu(isPublic) {
+        return [
+          { label: "Переименовать", icon: "pencil", action: async () => {
+            const next = await V.prompt("Новое название", title);
+            if (!next || next === title) return;
+            try {
+              await V.invoke("rename_playlist", { id: playlist.id, title: next });
+              title = next;
+              render();
+              V.libraryLoad?.();
+            } catch (error) { V.emit("error", String(error)); }
+          } },
+          { label: isPublic ? "Сделать приватным" : "Сделать публичным", icon: isPublic ? "lock" : "globe", action: async () => {
+            try {
+              await V.invoke("set_playlist_public", { id: playlist.id, public: !isPublic });
+              page.visibility = isPublic ? "private" : "public";
+              render();
+            } catch (error) { V.emit("error", String(error)); }
+          } },
+          { label: "Удалить плейлист", icon: "trash", destructive: true, action: async () => {
+            const sure = await V.confirm(`Удалить «${title}»?`, "Плейлист пропадёт и в официальном приложении.", "Удалить");
+            if (!sure) return;
+            try {
+              await V.invoke("delete_playlist", { id: playlist.id });
+              V.nav.pop();
+              V.libraryLoad?.();
+            } catch (error) { V.emit("error", String(error)); }
+          } },
+        ];
+      }
+
+      async function remove(index) {
+        if (page.revision == null) return;
+        const removed = page.tracks.splice(index, 1);
+        render();
+        try {
+          page.revision = await V.invoke("remove_from_playlist", { id: playlist.id, index, revision: page.revision }) ?? page.revision;
+          V.libraryLoad?.();
+        } catch (error) {
+          page.tracks.splice(index, 0, ...removed);
+          render();
+          V.emit("error", String(error));
+        }
+      }
+
+      load();
+      return host;
     },
 
     album({ id }) {
@@ -122,6 +200,20 @@
     const grid = h("div.pl-grid");
     const gridLabel = V.terminalLabel("плейлисты");
     let playlists = [];
+    // "новый плейлист": a dashed sheet with a plus at the end of the grid.
+    const newTile = h("button.pl-stack.pl-new", { onclick: async () => {
+      const title = await V.prompt("Новый плейлист", "", "Создать");
+      if (!title) return;
+      try {
+        await V.invoke("create_playlist", { title, public: false });
+        V.libraryLoad();
+      } catch (error) { V.emit("error", String(error)); }
+    } },
+      h("div.pl-sheets", h("div.pl-sheet.d2"), h("div.pl-sheet.d1"), h("div.pl-new-cover", V.icon("plus"))),
+      h("div.pl-title", V.icon("plus"), h("span", "новый плейлист")),
+      h("div.pl-count", "создать"));
+    const historyRow = h("button.history-row", { onclick: () => V.route.push("history", { title: "История" }) },
+      h("span.acid", "$"), h("span", "history --recent"), h("span.history-more", "история ›"));
 
     function renderStats() {
       kicker.textContent = `> ~/коллекция${V.session?.displayName ? ` | ${V.session.displayName.toLowerCase()}` : ""}`;
@@ -135,7 +227,7 @@
       try {
         playlists = await V.invoke("playlists");
         gridLabel.textContent = `// плейлисты | ${playlists.length}`;
-        grid.replaceChildren(...playlists.map(V.playlistStack));
+        grid.replaceChildren(...playlists.map(V.playlistStack), newTile);
       } catch (error) {
         grid.replaceChildren(V.errorBanner(String(error), V.libraryLoad));
       }
@@ -143,7 +235,7 @@
     };
     V.on("likes", () => { renderStats(); wall.render(); });
 
-    return V.page(h("div.content.library", header, wall.el, gridLabel, grid));
+    return V.page(h("div.content.library", header, wall.el, gridLabel, grid, historyRow));
   };
 
   /// "Мне нравится": three rows of liked covers drifting past each other in grey, a huge count,
