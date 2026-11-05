@@ -1,6 +1,6 @@
-// WebGL2 port of CoverVisualizer.swift: the playing cover redrawn as ASCII that breathes with the
-// music (effect 0), or the glowing smoke cloud in the cover's colours (effect 1).
-// Audio levels arrive as `levels` events from the Rust analyzer; smoothing happens per frame here.
+// WebGL2 port of CoverVisualizer.swift: the playing cover redrawn as ASCII that reacts to the
+// music in one of five effects (breath, relief, scanner, matrix, smoke). Bass, mids and highs
+// drive different parts of it. Audio levels come from the Rust analyzer; smoothing is per frame.
 (function () {
   const VERT = `#version 300 es
 void main() {
@@ -24,6 +24,7 @@ uniform float uMidHit;
 uniform float uHighHit;
 uniform float uHasCover;
 uniform float uEffect;
+uniform float uBeatPhase;
 uniform vec3 uAccent;
 uniform vec3 uCore;
 uniform vec3 uGlow;
@@ -39,12 +40,10 @@ float hash21(vec2 p) {
 
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
-float aspectLen(vec2 v) { return length(v * vec2(uRes.x / uRes.y, 1.0)); }
-
 // Square cover filling the screen height, centred; a slow ripple when there is no cover.
 float coverL(vec2 cuv, float t) {
   if (uHasCover < 0.5) {
-    float r = aspectLen(cuv - 0.5);
+    float r = length((cuv - 0.5) * vec2(uRes.x / uRes.y, 1.0));
     return 0.3 * (0.5 + 0.5 * sin(r * 20.0 - t * 2.0));
   }
   vec2 uv = (cuv - 0.5) * vec2(uRes.x / uRes.y, 1.0) + 0.5;
@@ -68,7 +67,7 @@ float fbm(vec2 p) {
   return v;
 }
 
-// Smoke: domain-warped cloud. Bass swells it, mids speed up the folding, highs draw streaks.
+// Smoke: a glowing cloud in the cover's colours, domain-warped so it folds like light in fog.
 vec3 smoke(vec2 uv) {
   vec2 p = (uv - vec2(0.5, 0.38)) * vec2(uRes.x / uRes.y, 1.0) * 1.6;
   float t = uTime * 0.18 * (1.0 + uMid * 0.8);
@@ -88,21 +87,60 @@ vec3 smoke(vec2 uv) {
 
 void main() {
   vec2 uv = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uRes;
-  if (uEffect > 0.5) {
+  int fx = int(uEffect + 0.5);
+  if (fx == 4) {
     outColor = vec4(smoke(uv), 1.0);
     return;
   }
-  // Breath: the image never moves; light, density and glyph choice do.
-  vec2 g = uv * uGrid;
+  vec2 grid = uGrid;
+  vec2 g = uv * grid;
   vec2 cell = floor(g);
-  vec2 cuv = (cell + 0.5) / uGrid;
+  vec2 cuv = (cell + 0.5) / grid;
   vec2 local = fract(g);
   float t = uTime;
-  float l = coverL(cuv, t);
-  l = clamp((l - 0.5) * (1.2 + 0.5 * uBass) + 0.5 + 0.22 * uBass + 0.12 * uKick, 0.0, 1.0);
-  float jitter = (hash21(cell + floor(t * 8.0)) - 0.5) * uMid * 0.5;
-  float hot = step(1.0 - uHigh * 0.05 - uHighHit * 0.14, hash21(cell + floor(t * 20.0)));
-  l *= smoothstep(1.2, 0.25, aspectLen(cuv - 0.5));
+  float l = 0.0, hot = 0.0, jitter = 0.0;
+
+  if (fx == 0) {
+    // Breath: the image never moves; light, density and glyph choice do.
+    l = coverL(cuv, t);
+    l = clamp((l - 0.5) * (1.2 + 0.5 * uBass) + 0.5 + 0.22 * uBass + 0.12 * uKick, 0.0, 1.0);
+    jitter = (hash21(cell + floor(t * 8.0)) - 0.5) * uMid * 0.5;
+    hot = step(1.0 - uHigh * 0.05 - uHighHit * 0.14, hash21(cell + floor(t * 20.0)));
+  } else if (fx == 1) {
+    // Relief: luminance is height; bass pushes bright regions toward the viewer.
+    vec2 c = cuv - 0.5;
+    c.x += c.y * uMid * 0.06 * sin(t * 0.8);
+    float h0 = coverL(cuv, t);
+    vec2 warped = 0.5 + c * (1.0 - (0.10 * uBass + 0.07 * uKick) * h0);
+    l = coverL(warped, t);
+    float hx = coverL(warped + vec2(1.0 / grid.x, 0.0), t);
+    float hy = coverL(warped + vec2(0.0, 1.0 / grid.y), t);
+    float light = clamp((l - hx) * 3.0 + (l - hy) * 3.0, -1.0, 1.0);
+    l = clamp(l * (0.75 + 0.5 * uBass) + light * (0.25 + 0.5 * uBass), 0.0, 1.0);
+    hot = smoothstep(0.85, 1.0, l) * (0.4 + uBass);
+  } else if (fx == 2) {
+    // Scanner: a beam sweeps down once per beat and develops the image; a trail fades behind.
+    float base = coverL(cuv, t);
+    float d = uBeatPhase - cuv.y;
+    float trail = d > 0.0 ? exp(-d * 5.0) : 0.0;
+    float head = exp(-abs(d) * 60.0);
+    float noise = step(1.0 - uHighHit * 0.2 - uHigh * 0.03, hash21(cell + floor(t * 30.0)));
+    l = clamp(base * (0.18 + 0.9 * trail) + head * 0.8 + noise * 0.5, 0.0, 1.0);
+    hot = head + noise;
+  } else {
+    // Matrix: falling columns; the cover shows where the rain is bright.
+    float base = coverL(cuv, t);
+    float speed = 0.25 + hash21(vec2(cell.x, 3.0)) * 0.5;
+    float headY = fract(t * speed * (0.6 + uBass * 1.4) + hash21(vec2(cell.x, 9.0)));
+    float d = fract(headY - cuv.y);
+    float trail = exp(-d * (9.0 - uMid * 5.0));
+    float tip = exp(-d * 120.0);
+    l = clamp(base * (0.15 + 1.1 * trail) + tip * 0.6, 0.0, 1.0);
+    jitter = (hash21(cell + floor(t * 14.0)) - 0.5) * 0.4 * trail;
+    hot = tip + step(1.0 - uHighHit * 0.1, hash21(cell + floor(t * 22.0)));
+  }
+
+  l *= smoothstep(1.2, 0.25, length((cuv - 0.5) * vec2(uRes.x / uRes.y, 1.0)));
   vec3 col = mix(vec3(0.92), uAccent, clamp(hot, 0.0, 1.0));
   float gi = floor(clamp(l + jitter, 0.0, 0.999) * uN);
   float m = texture(uAtlas, vec2((gi + local.x) / uN, local.y)).r;
@@ -110,18 +148,17 @@ void main() {
 }`;
 
   const UNIFORMS = [
-    "uRes", "uGrid", "uN", "uTime", "uBass", "uMid", "uHigh", "uKick", "uFlash", "uMidHit",
-    "uHighHit", "uHasCover", "uEffect", "uAccent", "uCore", "uGlow", "uShade", "uCover", "uAtlas",
+    "uRes", "uGrid", "uN", "uTime", "uBass", "uMid", "uHigh", "uKick", "uFlash", "uMidHit", "uHighHit",
+    "uHasCover", "uEffect", "uBeatPhase", "uAccent", "uCore", "uGlow", "uShade", "uCover", "uAtlas",
   ];
-  const EFFECTS = ["ascii", "дым"];
   /// Binary glyph ramp, darkest first.
   const GLYPHS = [" ", ".", "0", "1"];
   /// Cell size in CSS pixels; rows are 1.75x taller than wide, like terminal text.
   const CELL = 6;
   const MAX_DPR = 1.5;
   const ACID = [0.776, 1.0, 0.239];
-  /// Yellow core, magenta glow, violet shadow: used for grey covers and before a cover loads.
-  const DEFAULT_PALETTE = { core: [1.0, 0.85, 0.15], glow: [0.95, 0.2, 0.75], shade: [0.35, 0.12, 0.8], accent: ACID };
+  /// Yellow core, magenta glow, violet shadow: for grey covers and before a cover loads.
+  const DEFAULT_SMOKE = { core: [1.0, 0.85, 0.15], glow: [0.95, 0.2, 0.75], shade: [0.35, 0.12, 0.8] };
 
   function compile(gl, type, source) {
     const shader = gl.createShader(type);
@@ -154,39 +191,15 @@ void main() {
     return canvas;
   }
 
-  function rgbToHsv(r, g, b) {
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-    let h = 0;
-    if (d > 0) {
-      if (max === r) h = ((g - b) / d) % 6;
-      else if (max === g) h = (b - r) / d + 2;
-      else h = (r - g) / d + 4;
-      h /= 6;
-      if (h < 0) h += 1;
-    }
-    return [h, max === 0 ? 0 : d / max, max];
-  }
-
-  function hsvToRgb(h, s, v) {
-    const i = Math.floor(h * 6), f = h * 6 - i;
-    const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
-    return [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][((i % 6) + 6) % 6];
-  }
-
   /// Two strongest hue families plus a darker shadow, pushed vivid (Theme.smokeColors).
-  /// Throws for a cross-origin cover the canvas can't read; the caller falls back to defaults.
-  function paletteFrom(image) {
-    const side = 32;
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = side;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(image, 0, 0, side, side);
-    const data = ctx.getImageData(0, 0, side, side).data;
+  function smokePalette(image) {
+    const V = window.V;
+    const data = V.pixels(image, 32, 32);
     const buckets = 12;
     const weight = new Array(buckets).fill(0);
     const hues = new Array(buckets).fill(0);
     for (let i = 0; i < data.length; i += 4) {
-      const [h, s, v] = rgbToHsv(data[i] / 255, data[i + 1] / 255, data[i + 2] / 255);
+      const [h, s, v] = V.rgbToHsv(data[i] / 255, data[i + 1] / 255, data[i + 2] / 255);
       if (s < 0.25 || v < 0.2) continue;
       const bucket = Math.min(buckets - 1, Math.floor(h * buckets));
       const w = s * s * v;
@@ -195,24 +208,22 @@ void main() {
     }
     const ranked = weight.map((_, i) => i).sort((a, b) => weight[b] - weight[a]);
     const first = ranked[0];
-    if (!(weight[first] > side * side * 0.01)) return DEFAULT_PALETTE;
+    if (!(weight[first] > 32 * 32 * 0.01)) return DEFAULT_SMOKE;
     const primary = hues[first] / weight[first];
     const second = ranked.find((b) => b !== first && weight[b] > weight[first] * 0.25 && Math.abs(b - first) > 1);
     const secondary = second !== undefined ? hues[second] / weight[second] : (primary + 0.12) % 1;
     return {
-      core: hsvToRgb(primary, 0.75, 1.0),
-      glow: hsvToRgb(secondary, 0.85, 0.95),
-      shade: hsvToRgb((primary + 0.9) % 1, 0.85, 0.55),
-      accent: hsvToRgb(primary, 0.7, 1.0),
+      core: V.hsvToRgb(primary, 0.75, 1.0),
+      glow: V.hsvToRgb(secondary, 0.85, 0.95),
+      shade: V.hsvToRgb((primary + 0.9) % 1, 0.85, 0.55),
     };
   }
 
-  const noop = { supported: false, setLevels() {}, setCover() {}, toggleEffect() { return EFFECTS[0]; } };
+  const noop = { supported: false, setLevels() {}, setCover() {}, setEffect() {}, setAccent() {}, setPlaying() {} };
 
   function create(canvas) {
     const gl = canvas.getContext("webgl2", { alpha: false, antialias: false, powerPreference: "high-performance" });
     if (!gl) return noop;
-
     const program = gl.createProgram();
     try {
       gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
@@ -245,18 +256,19 @@ void main() {
 
     const s = {
       target: { bass: 0, mid: 0, high: 0, midHit: 0, highHit: 0, beat: 0, kickStrength: 0, playing: false },
-      bass: 0, mid: 0, high: 0, midHit: 0, highHit: 0, kick: 0, flash: 0,
+      playing: false,
+      bass: 0, mid: 0, high: 0, midHit: 0, highHit: 0, kick: 0, flash: 0, beatPhase: 1.3,
       lastBeat: 0, time: 0, last: performance.now(),
-      hasCover: 0, palette: DEFAULT_PALETTE, effect: 0, coverToken: 0,
+      hasCover: 0, smoke: DEFAULT_SMOKE, accent: ACID, effect: 1, coverToken: 0,
     };
 
     function step(now) {
       const dt = Math.min((now - s.last) / 1000, 0.05);
       s.last = now;
       const t = s.target;
-      const live = t.playing;
+      const live = s.playing && t.playing;
       const ease = (current, target, rate) => current + (target - current) * Math.min(1, dt * rate);
-      // Light smoothing only: the analyzer already tracks what is audible right now.
+      // Levels are already what is audible now; only light smoothing so it doesn't flicker.
       s.bass = ease(s.bass, live ? t.bass : 0, 20);
       s.mid = ease(s.mid, live ? t.mid : 0, 12);
       s.high = ease(s.high, live ? t.high : 0, 24);
@@ -264,7 +276,8 @@ void main() {
       s.highHit = live ? t.highHit : s.highHit * Math.exp(-dt * 10);
       s.kick *= Math.exp(-dt * 7);
       s.flash *= Math.exp(-dt * 9);
-      s.time += dt * (live ? 0.6 + s.bass * 1.4 : 0.15);
+      s.beatPhase = Math.min(1.3, s.beatPhase + dt * 2.1);
+      s.time += dt * (s.playing ? 0.6 + s.bass * 1.4 : 0.15);
     }
 
     function draw() {
@@ -288,10 +301,11 @@ void main() {
       gl.uniform1f(u.uHighHit, s.highHit);
       gl.uniform1f(u.uHasCover, s.hasCover);
       gl.uniform1f(u.uEffect, s.effect);
-      gl.uniform3fv(u.uAccent, s.palette.accent);
-      gl.uniform3fv(u.uCore, s.palette.core);
-      gl.uniform3fv(u.uGlow, s.palette.glow);
-      gl.uniform3fv(u.uShade, s.palette.shade);
+      gl.uniform1f(u.uBeatPhase, s.beatPhase);
+      gl.uniform3fv(u.uAccent, s.accent);
+      gl.uniform3fv(u.uCore, s.smoke.core);
+      gl.uniform3fv(u.uGlow, s.smoke.glow);
+      gl.uniform3fv(u.uShade, s.smoke.shade);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
@@ -309,65 +323,50 @@ void main() {
 
     return {
       supported: true,
-
+      setPlaying(playing) { s.playing = playing; },
       setLevels(levels) {
         s.target = levels;
         // The jump lands on the kick: attack on the event, decay per frame.
         if (levels.beat !== s.lastBeat) {
           s.lastBeat = levels.beat;
-          s.kick = Math.max(s.kick, 0.55 + 0.45 * levels.kickStrength);
-          s.flash = Math.max(s.flash, 0.5 + 0.4 * levels.kickStrength);
+          if (s.playing) {
+            s.kick = Math.max(s.kick, 0.55 + 0.45 * levels.kickStrength);
+            s.flash = Math.max(s.flash, 0.5 + 0.4 * levels.kickStrength);
+            s.beatPhase = 0;
+          }
         }
       },
-
-      /// Loads the cover; a cover the GPU may not read (no CORS) leaves the ripple and default colours.
-      setCover(url) {
-        const token = ++s.coverToken;
-        if (!url) {
+      setEffect(index) { s.effect = index; },
+      setAccent(rgb) { s.accent = rgb || ACID; },
+      /// `image` is a loaded, same-origin image (the cover through the Rust proxy), or null.
+      setCover(image) {
+        if (!image) {
           s.hasCover = 0;
-          s.palette = DEFAULT_PALETTE;
+          s.smoke = DEFAULT_SMOKE;
           return;
         }
-        const image = new Image();
-        image.crossOrigin = "anonymous";
-        image.onload = () => {
-          if (token !== s.coverToken) return;
-          try {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, coverTex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            s.hasCover = 1;
-            s.flash = 1;
-          } catch (error) {
-            console.warn("[viz] cover:", error);
-            s.hasCover = 0;
-          }
-          try {
-            s.palette = paletteFrom(image);
-          } catch (_) {
-            s.palette = DEFAULT_PALETTE;
-          }
-        };
-        image.onerror = () => {
-          if (token !== s.coverToken) return;
-          s.hasCover = 0;
-          s.palette = DEFAULT_PALETTE;
-        };
-        image.src = url.replace("200x200", "400x400");
-      },
-
-      toggleEffect() {
-        s.effect = (s.effect + 1) % EFFECTS.length;
-        return EFFECTS[s.effect];
-      },
-
-      /// The current accent as CSS, so the UI can follow the cover's colour.
-      accentCss() {
-        const [r, g, b] = s.palette.accent.map((c) => Math.round(c * 255));
-        return `rgb(${r}, ${g}, ${b})`;
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, coverTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        s.hasCover = 1;
+        s.flash = 1;
+        try {
+          s.smoke = smokePalette(image);
+        } catch (_) {
+          s.smoke = DEFAULT_SMOKE;
+        }
       },
     };
   }
 
-  window.Visualizer = { create };
+  window.Visualizer = {
+    create,
+    effects: [
+      { title: "Дыхание", summary: "обложка стоит, бас даёт свет, синт — мерцание, верха — вспышки" },
+      { title: "Рельеф", summary: "яркие места выпирают на басу" },
+      { title: "Сканер", summary: "на каждый удар луч проявляет обложку" },
+      { title: "Матрица", summary: "обложка проступает сквозь дождь символов" },
+      { title: "Дым", summary: "светящееся облако в цветах обложки, как в Яндексе" },
+    ],
+  };
 })();
