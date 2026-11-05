@@ -3,6 +3,17 @@ const { listen } = window.__TAURI__.event;
 
 const $ = (selector) => document.querySelector(selector);
 
+const viz = window.Visualizer ? window.Visualizer.create($("#viz")) : null;
+let activeScreen = "wave";
+
+// The visualizer runs only behind the Wave screen, and only when signed in.
+function syncViz() {
+  const show = document.body.classList.contains("signed-in") && activeScreen === "wave";
+  $("#viz").classList.toggle("on", show);
+}
+
+listen("levels", (event) => viz?.setLevels(event.payload));
+
 function showSession(session) {
   document.body.classList.toggle("signed-in", Boolean(session));
   if (session) {
@@ -10,6 +21,7 @@ function showSession(session) {
     loadCollection();
   }
   $("#login").disabled = false;
+  syncViz();
 }
 
 function formatDuration(ms) {
@@ -117,8 +129,9 @@ async function playAt(index) {
 
   $("#now-title").textContent = `${track.artists} — ${track.title}`;
   $("#now-stream").textContent = "// загрузка…";
-  document.querySelector('nav a[data-screen="now"]').click();
+  if (!queueState.wave) document.querySelector('nav a[data-screen="now"]').click();
   loadLyrics(track);
+  viz?.setCover(track.cover);
   try {
     const s = await invoke("play_track", { trackId: track.id, quality: "lossless" });
     const codec = s.codec.replace("-mp4", "").toUpperCase();
@@ -371,7 +384,13 @@ const links = document.querySelectorAll("nav a");
 links.forEach((a) => a.addEventListener("click", () => {
   links.forEach((x) => x.classList.toggle("on", x === a));
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === a.dataset.screen));
+  activeScreen = a.dataset.screen;
+  syncViz();
 }));
+
+$("#viz-effect").addEventListener("click", () => {
+  if (viz) $("#viz-effect").textContent = `фон: ${viz.toggleEffect()}`;
+});
 
 listen("session-changed", (event) => showSession(event.payload));
 listen("login-error", (event) => showLoginError(event.payload));

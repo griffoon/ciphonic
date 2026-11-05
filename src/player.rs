@@ -36,9 +36,13 @@ enum Cmd {
     Stop,
 }
 
+/// Mono copy of what the sound card plays, for the visualizer. Capped to the last few frames.
+const TAP_CAP: usize = 8192;
+
 #[derive(Default)]
 struct Shared {
     buffer: Mutex<VecDeque<f32>>,
+    tap: Mutex<VecDeque<f32>>,
     /// Output frames played since the last seek.
     frames: AtomicU64,
     /// Where the last seek (or the start) landed, in milliseconds.
@@ -93,6 +97,25 @@ impl Player {
 
     pub fn set_playing(&self, playing: bool) {
         self.shared.playing.store(playing, Ordering::Relaxed);
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.shared.playing.load(Ordering::Relaxed)
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.shared.out_rate.load(Ordering::Relaxed)
+    }
+
+    /// The last `len` mono samples that reached the sound card, zero-padded at the front.
+    pub fn tap_window(&self, len: usize) -> Vec<f32> {
+        let tap = lock(&self.shared.tap);
+        let mut window = vec![0.0; len];
+        let take = tap.len().min(len);
+        for (dst, src) in window[len - take..].iter_mut().zip(tap.iter().skip(tap.len() - take)) {
+            *dst = *src;
+        }
+        window
     }
 
     pub fn status(&self) -> Status {
@@ -239,6 +262,15 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
     drop(buffer);
     if frames > 0 {
         shared.frames.fetch_add(frames, Ordering::Relaxed);
+    }
+    {
+        let mut tap = lock(&shared.tap);
+        for frame in data.chunks(channels) {
+            tap.push_back(frame.iter().sum::<f32>() / channels as f32);
+        }
+        while tap.len() > TAP_CAP {
+            tap.pop_front();
+        }
     }
     if playing && shared.ended.load(Ordering::Relaxed) && buffered(shared) == 0 {
         shared.playing.store(false, Ordering::Relaxed);

@@ -2,6 +2,7 @@
 
 mod api;
 mod auth;
+mod analysis;
 mod lyrics;
 mod player;
 mod stream;
@@ -132,6 +133,7 @@ fn main() {
             // Opening the audio device can fail (no output); that is a startup error, not a crash later.
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
+            analysis::start(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
