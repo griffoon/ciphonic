@@ -78,6 +78,15 @@
     .bar { flex: 1; height: 4px; background: #1a1a20; cursor: pointer; position: relative; }
     .bar .fill { height: 100%; width: 0; background: var(--accent); transition: width .25s linear; }
     .time { color: var(--dim); font-size: 12px; min-width: 96px; text-align: right; }
+    .player button.ghost { background: none; color: var(--dim); border: 1px solid #2a2a31; }
+    .player button.ghost:hover { color: var(--fg); border-color: var(--fg); }
+    button.solid {
+      font: inherit; font-size: 14px; padding: 12px 22px; cursor: pointer; margin-top: 8px;
+      background: var(--accent); color: #050506; border: 0; border-radius: 0;
+      transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    }
+    button.solid:hover { transform: scale(1.03); }
+    button.solid:active { transform: scale(.97); }
     .sub { color: var(--dim); margin: 0 0 24px; }
 
     #auth {
@@ -133,7 +142,12 @@
       </div>
     </nav>
     <main>
-      <section class="screen on" id="wave"><h1>Моя волна</h1><p class="sub">// поток — итерация 6</p></section>
+      <section class="screen on" id="wave">
+        <h1>Моя волна</h1>
+        <p class="sub" id="wave-status">// волна учится на каждом треке: пропуски и лайки тоже</p>
+        <button class="solid" id="wave-start">запустить волну</button>
+        <div class="list" id="wave-list" style="margin-top:20px"></div>
+      </section>
       <section class="screen" id="library">
         <h1>Коллекция</h1>
         <p class="sub">// мне нравится</p>
@@ -154,8 +168,13 @@
         <p class="sub" id="now-stream"></p>
         <div class="player">
           <button id="toggle">играть</button>
+          <button id="next" class="ghost">дальше</button>
           <div class="bar" id="bar"><div class="fill" id="bar-fill"></div></div>
           <div class="time" id="bar-time">0:00 / 0:00</div>
+        </div>
+        <div class="player" style="margin-top:12px">
+          <button id="like" class="ghost">лайк</button>
+          <button id="dislike" class="ghost">не то</button>
         </div>
       </section>
     </main>

@@ -4,6 +4,7 @@ mod api;
 mod auth;
 mod player;
 mod stream;
+mod wave;
 
 use player::Player;
 
@@ -61,6 +62,34 @@ async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result
     Ok(source)
 }
 
+/// Reports a listen to play-audio. The start report has played 0; the end report has the seconds heard.
+#[tauri::command]
+async fn report_listen(
+    track_id: String,
+    album_id: Option<String>,
+    duration_ms: u64,
+    from: String,
+    play_id: String,
+    played: f64,
+    position: f64,
+) -> Result<(), String> {
+    let (token, uid) = signed_in().await?;
+    api::play_audio(
+        &token,
+        &uid,
+        &api::Listen {
+            track_id: &track_id,
+            album_id: album_id.as_deref(),
+            duration_ms,
+            from: &from,
+            play_id: &play_id,
+            played,
+            position,
+        },
+    )
+    .await
+}
+
 #[tauri::command]
 fn set_playing(app: AppHandle, playing: bool) {
     app.state::<Player>().set_playing(playing);
@@ -101,6 +130,7 @@ fn main() {
         .setup(|app| {
             // Opening the audio device can fail (no output); that is a startup error, not a crash later.
             app.manage(Player::start()?);
+            app.manage(wave::Wave::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -115,7 +145,11 @@ fn main() {
             play_track,
             set_playing,
             seek,
-            playback_status
+            playback_status,
+            report_listen,
+            wave::wave_start,
+            wave::wave_more,
+            wave::wave_feedback
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");

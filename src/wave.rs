@@ -1,0 +1,165 @@
+//! My Wave: the rotor session and the feedback that teaches it. Mirrors WaveSession.swift.
+//! Every event the listener causes goes to the server, or the wave cannot learn.
+
+use std::sync::{Mutex, MutexGuard};
+
+use serde_json::{json, Value};
+use tauri::{AppHandle, Manager};
+
+use crate::api::{self, TrackView};
+use crate::auth;
+
+/// `from` the mobile app's My Wave reports; plays marked with it count for the wave.
+pub const WAVE_FROM: &str = "radio-mobile-user-onyourwave";
+/// The server only needs the recent tail of what was played to avoid repeats.
+const QUEUE_MEMORY: usize = 30;
+const NOT_STARTED: &str = "Волна не запущена";
+const BAD_RESPONSE: &str = "Непонятный ответ сервера";
+
+#[derive(Default)]
+pub struct WaveState {
+    session_id: Option<String>,
+    batch_id: Option<String>,
+    /// Track refs (`id:albumId`) of tracks that started, oldest first.
+    played: Vec<String>,
+}
+
+pub type Wave = Mutex<WaveState>;
+
+fn lock(wave: &Wave) -> MutexGuard<'_, WaveState> {
+    wave.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn token() -> Result<String, String> {
+    auth::stored_token()?.ok_or_else(|| "Нужен вход".into())
+}
+
+/// Starts a new session seeded with the user's wave and returns its first batch.
+#[tauri::command]
+pub async fn wave_start(app: AppHandle) -> Result<Vec<TrackView>, String> {
+    let token = token()?;
+    let body = json!({ "seeds": ["user:onyourwave"], "queue": [], "includeTracksInResponse": true });
+    let result = api::post_json(&token, "rotor/session/new", &body).await?;
+    let session_id = result
+        .get("radioSessionId")
+        .and_then(Value::as_str)
+        .ok_or(BAD_RESPONSE)?
+        .to_owned();
+    let batch_id = result.get("batchId").and_then(Value::as_str).map(str::to_owned);
+
+    {
+        let wave = app.state::<Wave>();
+        *lock(&wave) = WaveState {
+            session_id: Some(session_id.clone()),
+            batch_id: batch_id.clone(),
+            played: Vec::new(),
+        };
+    }
+    let event = json!({ "type": "radioStarted", "timestamp": api::iso_now() });
+    if let Err(e) = feedback(&token, &session_id, batch_id.as_deref(), event, Some(WAVE_FROM)).await {
+        // The wave still plays without the report; the next event may land.
+        eprintln!("[wave] radioStarted: {e}");
+    }
+    Ok(api::sequence_tracks(&result))
+}
+
+/// The next batch, seeded with the recent tail of what was played.
+#[tauri::command]
+pub async fn wave_more(app: AppHandle) -> Result<Vec<TrackView>, String> {
+    let token = token()?;
+    let (session_id, queue) = {
+        let wave = app.state::<Wave>();
+        let state = lock(&wave);
+        (state.session_id.clone().ok_or(NOT_STARTED)?, tail(&state.played))
+    };
+    let result = api::post_json(
+        &token,
+        &format!("rotor/session/{session_id}/tracks"),
+        &json!({ "queue": queue }),
+    )
+    .await?;
+    if let Some(batch) = result.get("batchId").and_then(Value::as_str) {
+        let wave = app.state::<Wave>();
+        lock(&wave).batch_id = Some(batch.to_owned());
+    }
+    Ok(api::sequence_tracks(&result))
+}
+
+/// `kind` is one of trackStarted, trackFinished, skip, like, dislike.
+#[tauri::command]
+pub async fn wave_feedback(
+    app: AppHandle,
+    kind: String,
+    track_id: String,
+    album_id: Option<String>,
+    played: f64,
+) -> Result<(), String> {
+    let token = token()?;
+    let (session_id, batch_id) = {
+        let wave = app.state::<Wave>();
+        let state = lock(&wave);
+        (state.session_id.clone().ok_or(NOT_STARTED)?, state.batch_id.clone())
+    };
+    let timestamp = api::iso_now();
+    let event = match kind.as_str() {
+        "trackStarted" | "like" | "dislike" => json!({ "type": kind, "timestamp": timestamp, "trackId": track_id }),
+        "trackFinished" | "skip" => json!({
+            "type": kind,
+            "timestamp": timestamp,
+            "trackId": track_id,
+            "totalPlayedSeconds": (played * 10.0).round() / 10.0,
+        }),
+        _ => return Err("Неизвестное событие волны".into()),
+    };
+    if kind == "trackStarted" {
+        let track_ref = match album_id {
+            Some(album) => format!("{track_id}:{album}"),
+            None => track_id.clone(),
+        };
+        let wave = app.state::<Wave>();
+        lock(&wave).played.push(track_ref);
+    }
+    feedback(&token, &session_id, batch_id.as_deref(), event, None).await
+}
+
+async fn feedback(
+    token: &str,
+    session_id: &str,
+    batch_id: Option<&str>,
+    event: Value,
+    from: Option<&str>,
+) -> Result<(), String> {
+    let mut body = json!({ "event": event });
+    if let Some(batch) = batch_id {
+        body["batchId"] = json!(batch);
+    }
+    if let Some(from) = from {
+        body["from"] = json!(from);
+    }
+    api::post_json(token, &format!("rotor/session/{session_id}/feedback"), &body).await?;
+    Ok(())
+}
+
+fn tail(played: &[String]) -> Vec<String> {
+    played[played.len().saturating_sub(QUEUE_MEMORY)..].to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn queue_memory_keeps_only_recent_tail() {
+        let played: Vec<String> = (0..40).map(|i| i.to_string()).collect();
+        let kept = tail(&played);
+        assert_eq!(kept.len(), QUEUE_MEMORY);
+        assert_eq!(kept.first().map(String::as_str), Some("10"));
+        assert_eq!(kept.last().map(String::as_str), Some("39"));
+    }
+
+    #[test]
+    fn short_history_is_kept_whole() {
+        let played = vec!["a".to_string(), "b".to_string()];
+        assert_eq!(tail(&played), played);
+    }
+}

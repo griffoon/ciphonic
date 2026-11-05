@@ -25,6 +25,7 @@ pub struct TrackView {
     pub artists: String,
     pub duration_ms: u64,
     pub cover: Option<String>,
+    pub album_id: Option<String>,
 }
 
 /// A playlist as the UI shows it.
@@ -113,7 +114,7 @@ pub async fn search(token: &str, text: &str) -> Result<Vec<TrackView>, String> {
         .collect())
 }
 
-fn track_view(track: &Value) -> Option<TrackView> {
+pub fn track_view(track: &Value) -> Option<TrackView> {
     let id = id_string(track.get("id")?)?;
     let title = text_field(track, "title")?;
     let artists = track
@@ -123,13 +124,69 @@ fn track_view(track: &Value) -> Option<TrackView> {
         .unwrap_or_default();
     let album_cover = track.pointer("/albums/0/coverUri").and_then(Value::as_str);
     let cover = cover_url(track.get("coverUri").and_then(Value::as_str).or(album_cover));
+    let album_id = track.pointer("/albums/0/id").and_then(id_string);
     Some(TrackView {
         id,
         title,
         artists,
         duration_ms: track.get("durationMs").and_then(Value::as_u64).unwrap_or(0),
         cover,
+        album_id,
     })
+}
+
+/// Tracks of a rotor batch (`sequence` items carry the track under `track`).
+pub fn sequence_tracks(result: &Value) -> Vec<TrackView> {
+    result
+        .get("sequence")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|item| item.get("track"))
+        .filter_map(track_view)
+        .collect()
+}
+
+/// ISO 8601 with milliseconds and `Z`, the format the rotor and play-audio endpoints expect.
+pub fn iso_now() -> String {
+    chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
+}
+
+/// One listen as play-audio reports it. Sent at the start (played 0) and at the end.
+pub struct Listen<'a> {
+    pub track_id: &'a str,
+    pub album_id: Option<&'a str>,
+    pub duration_ms: u64,
+    pub from: &'a str,
+    pub play_id: &'a str,
+    pub played: f64,
+    pub position: f64,
+}
+
+pub async fn play_audio(token: &str, uid: &str, listen: &Listen<'_>) -> Result<(), String> {
+    let now = iso_now();
+    let mut form = vec![
+        ("track-id", listen.track_id.to_owned()),
+        ("from-cache", "False".to_owned()),
+        ("from", listen.from.to_owned()),
+        ("play-id", listen.play_id.to_owned()),
+        ("uid", uid.to_owned()),
+        ("timestamp", now.clone()),
+        ("track-length-seconds", (listen.duration_ms as f64 / 1000.0).round().to_string()),
+        ("total-played-seconds", format!("{:.1}", listen.played)),
+        ("end-position-seconds", format!("{:.1}", listen.position)),
+        ("client-now", now),
+    ];
+    if let Some(album) = listen.album_id {
+        form.push(("album-id", album.to_owned()));
+    }
+    post_form(token, "play-audio", &form).await?;
+    Ok(())
+}
+
+pub async fn post_json(token: &str, path: &str, body: &Value) -> Result<Value, String> {
+    let request = http().post(format!("{BASE_URL}/{path}")).json(body);
+    send(token, request, CLIENT_HEADER).await
 }
 
 /// Yandex covers are templates like `avatars.../%%`; ask for a 200px square.
