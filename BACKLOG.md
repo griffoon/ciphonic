@@ -1,53 +1,66 @@
 # Волна Desktop — беклог
 
-Каждая итерация: маленький кусок, сборка, запуск, коммит с тегом.
+Каждая итерация: маленький кусок, сборка, коммит. Тег ставится, когда версию проверили руками.
 
 ## Итерация 1 — окно и каркас
-- [ ] Tauri 2 окно 1100×720, тёмный фон, моно-шрифт, Dela Gothic One для заголовков
-- [ ] Пустые экраны: Волна / Коллекция / Поиск / Сейчас играет (только заглушки)
-- [ ] Сборка `cargo build` проходит на Windows (gnu toolchain)
+- [x] Tauri 2 окно 1100×720, тёмная тема, моно-шрифт, Dela Gothic One для заголовков
+- [x] Экраны: Волна / Коллекция / Поиск / Сейчас играет
+- [x] Сборка `cargo build` на Windows (gnu toolchain + WinLibs)
 
 ## Итерация 2 — вход
-- [ ] OAuth Яндекса во вебвью (перехват `access_token` из редиректа, как `LoginView.swift`)
-- [ ] Токен в Windows Credential Manager (crate `keyring`)
-- [ ] Проверка `account/status`, сохранение uid
+- [x] OAuth Яндекса в отдельном вебвью, `access_token` из редиректа (как `LoginView.swift`)
+- [x] Токен в Windows Credential Manager (`keyring`)
+- [x] Проверка `account/status`, uid; ручная вставка токена как запасной путь
 
-## Итерация 3 — API-клиент (только чтение)
-- [ ] `YMClient` на reqwest: заголовки `Authorization: OAuth`, `X-Yandex-Music-Client`
-- [ ] Коллекция: лайки треков, плейлисты
-- [ ] Поиск: `search?type=all`
+## Итерация 3 — API-клиент
+- [x] reqwest, `Authorization: OAuth`, `X-Yandex-Music-Client`
+- [x] Коллекция: «Мне нравится», список плейлистов
+- [x] Поиск треков: `search?type=all`
 
-## Итерация 4 — стриминг без звука
-- [ ] `get-file-info` с HMAC-подписью (ключ из `YMClient.swift`)
-- [ ] AES-CTR расшифровка lossless (`AESCTR` из `StreamResolver.swift`)
-- [ ] Legacy MP3 через `download-info` + MD5-соль
+## Итерация 4 — поток
+- [x] `get-file-info` с HMAC-подписью и desktop-заголовком
+- [x] AES-128-CTR расшифровка lossless во временный файл
+- [x] MP3 через `download-info` + MD5-соль, фолбэк как в iOS
 
 ## Итерация 5 — звук
-- [ ] symphonia декодирование mp3/aac/flac
-- [ ] cpal вывод (WASAPI), play/pause/seek
-- [ ] Предзагрузка следующего трека
+- [x] symphonia: mp3 / aac / flac (m4a и flac)
+- [x] cpal (WASAPI): play / pause / seek, позиция по реально сыгранным кадрам
+- [ ] Предзагрузка следующего трека (перенесено в «Долги»)
 
 ## Итерация 6 — Моя волна
-- [ ] `rotor/session/new`, `tracks`, batch
-- [ ] Отчёты как на iOS: `trackStarted`, `trackFinished`, `skip`, `like`, `dislike`, `radioStarted` (`from=radio-mobile-user-onyourwave`)
-- [ ] `play-audio` с `from` для обучения волны
+- [x] `rotor/session/new`, `rotor/session/{id}/tracks`, хвост 30 сыгранных
+- [x] Обратная связь: `radioStarted` (с `from`), `trackStarted`, `trackFinished`, `skip`, `like`, `dislike`
+- [x] `play-audio` в начале и в конце трека с `from=radio-mobile-user-onyourwave`
 
 ## Итерация 7 — текст песен
-- [ ] Yandex lyrics (LRC и TEXT, HMAC-подпись)
-- [ ] Fallback LRCLIB, караоке-подсветка по времени
+- [x] Yandex LRC, затем TEXT (HMAC-подпись Android-ключом)
+- [x] LRCLIB: точное совпадение, потом поиск с допуском по длительности
+- [x] Подсветка строки под плейхедом
 
 ## Итерация 8 — визуализатор
-- [ ] rustfft → полосы bass/mid/high, детект кика
-- [ ] Порт шейдера `CoverVisualizer.swift` на WebGL2 (эффект «Дым» и ASCII)
-- [ ] Цвет акцента из обложки
+- [x] rustfft 2048 по тому, что реально играет: 6 полос, удары, детект кика, 60 Гц
+- [x] Шейдер `CoverVisualizer.swift` на WebGL2: ASCII-дыхание и «Дым»
+- [x] Палитра дыма и акцент ASCII из обложки (если обложку можно прочитать)
 
 ## Итерация 9 — Windows
-- [ ] SMTC (медиаклавиши, флайаут) через `souvlaki`
-- [ ] Mica/Acrylic фон окна
+- [x] SMTC через `souvlaki`: медиаклавиши, флайаут, перемотка
+- [x] Тёмная Mica за окном
 
-## Итерация 10 — сборка и релиз
-- [ ] `cargo tauri build` → `.exe` с двойным кликом
-- [ ] README: как запустить
+## Итерация 10 — релиз
+- [x] `cargo build --release` → `target\release\volna.exe`, запускается двойным кликом
+- [x] README: как запустить и собрать
+
+## Долги (следующие итерации)
+- Предзагрузка следующего трека и бесшовный переход; сейчас каждый трек качается при старте
+- Lossless качается целиком до начала игры: нужна потоковая расшифровка CTR
+- Ресемплер линейный: заменить на band-limited (rubato)
+- Плейлисты открываются только списком, без треков внутри
+- «Лайк» сейчас только сигнал волне, в «Мне нравится» трек не добавляется
+- Качество зашито как lossless, нет экрана настроек
+- Акцент интерфейса не следует за обложкой (только визуализатор)
+- Прогресс обновляется 4 раза в секунду через опрос; перевести на события
+- Кнопка «назад» на медиаклавишах перематывает в начало, а не к прошлому треку
+- Установщик (`cargo tauri build`, NSIS/MSI) не собирается: нет tauri-cli
 
 ## Потом (не в MVP)
-- Альбомы, артисты, клипы, плейлисты-редактирование, эквалайзер, Ynison
+- Альбомы, артисты, клипы, редактирование плейлистов, эквалайзер, Ynison
