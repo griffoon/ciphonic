@@ -2,6 +2,7 @@
 //! redirect fragment in the navigation handler and kept in Windows Credential Manager.
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindowBuilder};
@@ -17,6 +18,26 @@ const AUTH_URL: &str =
 
 /// Set while a redirect with a token is being verified, so a second redirect is ignored.
 static FINISHING: AtomicBool = AtomicBool::new(false);
+/// Token and uid of the signed-in account, so calls don't re-check account/status each time.
+static ACCOUNT_CACHE: Mutex<Option<(String, String)>> = Mutex::new(None);
+
+fn remember_account(token: &str, uid: &str) {
+    *ACCOUNT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = Some((token.to_owned(), uid.to_owned()));
+}
+
+/// Token plus uid for calls that need the account; verified once per token.
+pub async fn account() -> Result<(String, String), String> {
+    let token = stored_token()?.ok_or("Нужен вход")?;
+    let cached = ACCOUNT_CACHE.lock().unwrap_or_else(|p| p.into_inner()).clone();
+    if let Some((known, uid)) = cached {
+        if known == token {
+            return Ok((token, uid));
+        }
+    }
+    let session = api::verify(&token).await?;
+    remember_account(&token, &session.uid);
+    Ok((token, session.uid))
+}
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +64,7 @@ fn store_token(token: &str) -> Result<(), String> {
 }
 
 pub fn forget_token() -> Result<(), String> {
+    *ACCOUNT_CACHE.lock().unwrap_or_else(|p| p.into_inner()) = None;
     match entry()?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(e) => Err(e.to_string()),
@@ -56,7 +78,10 @@ pub async fn current_session() -> Result<Option<Session>, String> {
         return Ok(None);
     };
     match api::verify(&token).await {
-        Ok(session) => Ok(Some(session)),
+        Ok(session) => {
+            remember_account(&token, &session.uid);
+            Ok(Some(session))
+        }
         Err(e) if e == api::UNAUTHORIZED => {
             forget_token()?;
             Ok(None)
@@ -114,6 +139,7 @@ pub fn open_login(app: &AppHandle) -> Result<(), String> {
 pub async fn login_with_token(token: &str) -> Result<Session, String> {
     let session = api::verify(token).await?;
     store_token(token)?;
+    remember_account(token, &session.uid);
     Ok(session)
 }
 

@@ -1,17 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod analysis;
 mod api;
 mod auth;
-mod analysis;
+mod catalog;
 mod lyrics;
 mod media;
+mod models;
 mod player;
 mod stream;
 mod wave;
 
-use player::Player;
-
 use auth::Session;
+use player::Player;
 use tauri::{AppHandle, Emitter, Manager};
 
 #[tauri::command]
@@ -19,41 +20,10 @@ async fn current_session() -> Result<Option<Session>, String> {
     auth::current_session().await
 }
 
-/// Token plus uid for the calls that need the account.
-async fn signed_in() -> Result<(String, String), String> {
-    let token = auth::stored_token()?.ok_or("Нужен вход")?;
-    let session = api::verify(&token).await?;
-    Ok((token, session.uid))
-}
-
-#[tauri::command]
-async fn liked_tracks() -> Result<Vec<api::TrackView>, String> {
-    let (token, uid) = signed_in().await?;
-    api::liked_tracks(&token, &uid).await
-}
-
-#[tauri::command]
-async fn playlists() -> Result<Vec<api::PlaylistView>, String> {
-    let (token, uid) = signed_in().await?;
-    api::playlists(&token, &uid).await
-}
-
-#[tauri::command]
-async fn search(text: String) -> Result<Vec<api::TrackView>, String> {
-    let token = auth::stored_token()?.ok_or("Нужен вход")?;
-    api::search(&token, text.trim()).await
-}
-
-#[tauri::command]
-async fn resolve_stream(track_id: String, quality: String) -> Result<stream::StreamSource, String> {
-    let token = auth::stored_token()?.ok_or("Нужен вход")?;
-    stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await
-}
-
 /// Resolves the stream, loads it into the player and starts it. Returns what is playing.
 #[tauri::command]
 async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result<stream::StreamSource, String> {
-    let token = auth::stored_token()?.ok_or("Нужен вход")?;
+    let (token, _) = auth::account().await?;
     let source = stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await?;
     let input = if source.local {
         player::Source::File(source.location.clone().into())
@@ -76,26 +46,27 @@ async fn report_listen(
     played: f64,
     position: f64,
 ) -> Result<(), String> {
-    let (token, uid) = signed_in().await?;
-    api::play_audio(
-        &token,
-        &uid,
-        &api::Listen {
-            track_id: &track_id,
-            album_id: album_id.as_deref(),
-            duration_ms,
-            from: &from,
-            play_id: &play_id,
-            played,
-            position,
-        },
-    )
-    .await
+    let (token, uid) = auth::account().await?;
+    let listen = api::Listen {
+        track_id: &track_id,
+        album_id: album_id.as_deref(),
+        duration_ms,
+        from: &from,
+        play_id: &play_id,
+        played,
+        position,
+    };
+    api::play_audio(&token, &uid, &listen).await
 }
 
 #[tauri::command]
 fn set_playing(app: AppHandle, playing: bool) {
     app.state::<Player>().set_playing(playing);
+}
+
+#[tauri::command]
+fn set_volume(app: AppHandle, volume: f32) {
+    app.state::<Player>().set_volume(volume);
 }
 
 #[tauri::command]
@@ -124,8 +95,7 @@ async fn start_login(app: AppHandle) -> Result<(), String> {
 fn logout(app: AppHandle) -> Result<(), String> {
     auth::forget_token()?;
     app.state::<Player>().stop()?;
-    app.emit("session-changed", Option::<Session>::None)
-        .map_err(|e| e.to_string())
+    app.emit("session-changed", Option::<Session>::None).map_err(|e| e.to_string())
 }
 
 fn main() {
@@ -145,18 +115,27 @@ fn main() {
             start_login,
             login_with_token,
             logout,
-            liked_tracks,
-            playlists,
-            search,
-            resolve_stream,
             play_track,
             set_playing,
+            set_volume,
             seek,
             playback_status,
             report_listen,
+            catalog::liked_tracks,
+            catalog::playlists,
+            catalog::playlist_tracks,
+            catalog::album,
+            catalog::artist,
+            catalog::search,
+            catalog::search_suggest,
+            catalog::set_like,
+            catalog::dislike,
+            catalog::cover_data,
             wave::wave_start,
             wave::wave_more,
             wave::wave_feedback,
+            wave::wave_characters,
+            wave::wave_last,
             lyrics::get_lyrics,
             media::media_update
         ])

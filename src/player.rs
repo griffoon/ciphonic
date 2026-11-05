@@ -48,6 +48,8 @@ struct Shared {
     /// Where the last seek (or the start) landed, in milliseconds.
     base_millis: AtomicU64,
     duration_millis: AtomicU64,
+    /// Output gain as f32 bits; set to 1.0 at start (the derived default would be silence).
+    volume: AtomicU32,
     playing: AtomicBool,
     /// Set when the decoder ran out of packets; playback stops once the buffer drains.
     ended: AtomicBool,
@@ -72,6 +74,7 @@ impl Player {
     /// Opens the default output device and starts the worker. Fails if there is no usable device.
     pub fn start() -> Result<Self, String> {
         let shared = Arc::new(Shared::default());
+        shared.volume.store(1.0f32.to_bits(), Ordering::Relaxed);
         let (tx, rx) = mpsc::channel();
         let (ready_tx, ready_rx) = mpsc::channel();
         let worker = Arc::clone(&shared);
@@ -97,6 +100,11 @@ impl Player {
 
     pub fn set_playing(&self, playing: bool) {
         self.shared.playing.store(playing, Ordering::Relaxed);
+    }
+
+    /// 0…1, applied in the output callback.
+    pub fn set_volume(&self, volume: f32) {
+        self.shared.volume.store(volume.clamp(0.0, 1.0).to_bits(), Ordering::Relaxed);
     }
 
     pub fn is_playing(&self) -> bool {
@@ -247,12 +255,14 @@ fn open_output(shared: &Arc<Shared>) -> Result<(cpal::Stream, u32, usize), Strin
 /// Runs on the audio thread: takes what the decoder queued and never blocks for long.
 fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
     let playing = shared.playing.load(Ordering::Relaxed);
+    // Squared so the slider feels even to the ear.
+    let gain = f32::from_bits(shared.volume.load(Ordering::Relaxed)).powi(2);
     let mut buffer = lock(&shared.buffer);
     let mut frames = 0u64;
     for frame in data.chunks_mut(channels) {
         if playing && buffer.len() >= channels {
             for sample in frame.iter_mut() {
-                *sample = buffer.pop_front().unwrap_or(0.0);
+                *sample = buffer.pop_front().unwrap_or(0.0) * gain;
             }
             frames += 1;
         } else {
@@ -264,9 +274,11 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
         shared.frames.fetch_add(frames, Ordering::Relaxed);
     }
     {
+        // The visualizer hears the music before the volume slider, like on iOS.
+        let undo_gain = if gain > 1e-4 { 1.0 / gain } else { 0.0 };
         let mut tap = lock(&shared.tap);
         for frame in data.chunks(channels) {
-            tap.push_back(frame.iter().sum::<f32>() / channels as f32);
+            tap.push_back(frame.iter().sum::<f32>() / channels as f32 * undo_gain);
         }
         while tap.len() > TAP_CAP {
             tap.pop_front();
