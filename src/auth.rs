@@ -87,6 +87,7 @@ pub fn open_login(app: &AppHandle) -> Result<(), String> {
         .center()
         .on_navigation(move |url| match token_from_fragment(url) {
             Some(token) => {
+                eprintln!("[login] redirect with token from {}", url.host_str().unwrap_or("?"));
                 if !FINISHING.swap(true, Ordering::SeqCst) {
                     let app = handle.clone();
                     tauri::async_runtime::spawn(finish_login(app, token));
@@ -94,18 +95,30 @@ pub fn open_login(app: &AppHandle) -> Result<(), String> {
                 // The redirect page is never shown: the token is all we need from it.
                 false
             }
-            None => true,
+            None => {
+                // Host and path only: the query may carry the authorization state.
+                eprintln!(
+                    "[login] navigate {}{}",
+                    url.host_str().unwrap_or("?"),
+                    url.path()
+                );
+                true
+            }
         })
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())
 }
 
+/// Checks a token against the API and keeps it. Used by the webview redirect and by manual paste.
+pub async fn login_with_token(token: &str) -> Result<Session, String> {
+    let session = api::verify(token).await?;
+    store_token(token)?;
+    Ok(session)
+}
+
 async fn finish_login(app: AppHandle, token: String) {
-    let result = match api::verify(&token).await {
-        Ok(session) => store_token(&token).map(|()| session),
-        Err(e) => Err(e),
-    };
+    let result = login_with_token(&token).await;
     if let Some(window) = app.get_webview_window(LOGIN_LABEL) {
         let _ = window.close();
     }

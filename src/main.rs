@@ -12,6 +12,11 @@ async fn current_session() -> Result<Option<Session>, String> {
 }
 
 #[tauri::command]
+async fn login_with_token(token: String) -> Result<Session, String> {
+    auth::login_with_token(token.trim()).await
+}
+
+#[tauri::command]
 fn start_login(app: AppHandle) -> Result<(), String> {
     auth::open_login(&app)
 }
@@ -25,7 +30,12 @@ fn logout(app: AppHandle) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![current_session, start_login, logout])
+        .invoke_handler(tauri::generate_handler![
+            current_session,
+            start_login,
+            login_with_token,
+            logout
+        ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");
 }

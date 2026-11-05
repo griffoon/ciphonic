@@ -67,6 +67,14 @@
     #auth button:active { transform: scale(.97); }
     #auth button[disabled] { opacity: .4; cursor: default; transform: none; }
     #auth .error { color: #ff5c5c; min-height: 1.2em; font-size: 13px; }
+    #auth .manual { color: var(--dim); font-size: 13px; }
+    #auth .manual summary { cursor: pointer; }
+    #auth .manual-row { display: flex; gap: 8px; margin-top: 10px; }
+    #auth .manual input {
+      font: inherit; font-size: 13px; width: 260px; padding: 10px;
+      background: #0d0d10; color: var(--fg); border: 1px solid #2a2a31; border-radius: 0;
+    }
+    #auth .manual button { font-size: 13px; padding: 10px 16px; }
   </style>
 </head>
 <body>
@@ -74,6 +82,13 @@
     <p class="logo">ВОЛНА</p>
     <p>// только музыка. войди через яндекс</p>
     <button id="login">войти через яндекс</button>
+    <details class="manual">
+      <summary>вставить токен вручную</summary>
+      <div class="manual-row">
+        <input id="token" type="password" placeholder="OAuth-токен" autocomplete="off" spellcheck="false" />
+        <button id="token-ok">ok</button>
+      </div>
+    </details>
     <div class="error" id="login-error"></div>
   </section>
 

@@ -26,6 +26,19 @@ $("#login").addEventListener("click", async () => {
   }
 });
 
+$("#token-ok").addEventListener("click", async () => {
+  const token = $("#token").value.trim();
+  if (!token) return;
+  $("#login-error").textContent = "";
+  try {
+    const session = await invoke("login_with_token", { token });
+    $("#token").value = "";
+    showSession(session);
+  } catch (error) {
+    showLoginError(String(error));
+  }
+});
+
 $("#logout").addEventListener("click", () => invoke("logout"));
 
 const links = document.querySelectorAll("nav a");

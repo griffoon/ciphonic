@@ -1,0 +1,15 @@
+﻿cargo :     Blocking waiting for file lock on build directory
+At line:1 char:400
++ ... RPROFILE\.cargo\bin;" + $env:PATH; cargo build --release 2>&1 | Tee-O ...
++                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Blocking wa...build directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: linker stderr: C:/Users/gures/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.MSVCRT_Micro
+soft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.2.0/../../../../x86_64-w64-mingw32/bin/ld
+.exe: .rsrc merge failure: multiple non-default manifests
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `volna` (bin "volna") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 3m 54s
