@@ -235,6 +235,7 @@
       page.getBoundingClientRect();
       page.classList.remove("entering");
       below?.classList.add("behind");
+      V.emit("navigated", tab);
     },
     pop(tab = this.tab) {
       const stack = this.stacks[tab];
@@ -243,6 +244,7 @@
       stack[stack.length - 1].classList.remove("behind");
       page.classList.add("entering");
       setTimeout(() => page.remove(), V.springs.sheet.ms);
+      V.emit("navigated", tab);
       return true;
     },
     popToRoot(tab = this.tab) {

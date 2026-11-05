@@ -4,6 +4,7 @@ mod analysis;
 mod api;
 mod auth;
 mod catalog;
+mod feed;
 mod lyrics;
 mod media;
 mod models;
@@ -131,6 +132,8 @@ fn main() {
             catalog::set_like,
             catalog::dislike,
             catalog::cover_data,
+            feed::home_feed,
+            feed::albums,
             wave::wave_start,
             wave::wave_more,
             wave::wave_feedback,

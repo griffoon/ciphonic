@@ -101,11 +101,11 @@
   V.albumCard = (album) => h("button.album-card", { onclick: () => V.route.push("album", { id: album.id, title: album.title }) },
     V.cover(album.cover, 300),
     h("div.ac-title", album.title),
-    h("div.ac-sub", [album.year, album.artists].filter(Boolean).join(" | ").toLowerCase()));
+    h("div.ac-sub", (album.artists || "").split(", ")[0].toLowerCase()));
 
   V.artistCard = (artist) => h("button.artist-card", { onclick: () => V.route.push("artist", { id: artist.id, title: artist.name }) },
-    V.cover(artist.cover, 300, "round"),
-    h("div.ac-title", artist.name));
+    V.cover(artist.cover, 200, "round"),
+    h("div.ar-name", artist.name.toLowerCase()));
 
   /// A playlist as a playlist: its cover on a stack of sheets, the title and the count.
   V.playlistStack = (playlist) => h("button.pl-stack", { onclick: () => V.route.push("playlist", { ...playlist }) },

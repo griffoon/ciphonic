@@ -312,7 +312,7 @@ void main() {
     function frame(now) {
       requestAnimationFrame(frame);
       // Hidden canvas: no GPU work, and no time jump when it comes back.
-      if (!canvas.classList.contains("on")) {
+      if (!canvas.classList.contains("on") || canvas.classList.contains("offscreen")) {
         s.last = now;
         return;
       }

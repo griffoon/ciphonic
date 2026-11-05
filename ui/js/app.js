@@ -97,29 +97,41 @@
     V.nav.root("search", V.buildSearch());
 
     function select(id) {
-      // Clicking the open tab goes back to its first screen.
-      if (id === tab) V.nav.popToRoot(id);
+      // Clicking the open tab goes back to its first screen; on the Wave tab, back to the top.
+      if (id === tab) {
+        if (id === "wave" && V.nav.stacks.wave.length === 1) V.waveScrollTop?.();
+        V.nav.popToRoot(id);
+      }
       tab = id;
       V.nav.tab = id;
       V.$$(".tab", root).forEach((el) => el.classList.toggle("on", el.dataset.tab === id));
       V.$$("[data-tab]", dock).forEach((el) => el.classList.toggle("on", el.dataset.tab === id));
-      const active = V.$(`.tab-btn[data-tab="${id}"]`, tabbar);
-      pill.classList.toggle("gone", !active);
-      if (active) {
-        pill.style.width = `${active.offsetWidth}px`;
-        pill.style.transform = `translateX(${active.offsetLeft}px)`;
-      }
+      movePill();
       V.$("#viz")?.classList.toggle("on", id === "wave");
       if (id === "search") V.focusSearch?.();
       syncAccessory();
     }
 
-    /// Shown only once something played; it steps aside on the Wave screen's hero.
+    /// The light pill slides under the selected tab; hidden when search is selected.
+    function movePill() {
+      const active = V.$(`.tab-btn[data-tab="${tab}"]`, tabbar);
+      pill.classList.toggle("gone", !active);
+      if (active) {
+        pill.style.width = `${active.offsetWidth}px`;
+        pill.style.transform = `translateX(${active.offsetLeft}px)`;
+      }
+    }
+
+    /// Shown only once something played; it steps aside while the Wave hero sits at the top.
     function syncAccessory() {
-      dock.classList.toggle("with-mini", Boolean(P.current) && tab !== "wave");
+      const onHero = tab === "wave" && V.nav.stacks.wave.length === 1 && V.waveHeroFocused;
+      dock.classList.toggle("with-mini", Boolean(P.current) && !onHero);
     }
     V.on("player", syncAccessory);
-    new ResizeObserver(() => select(tab)).observe(tabbar);
+    V.on("hero", syncAccessory);
+    V.on("navigated", syncAccessory);
+    new ResizeObserver(movePill).observe(tabbar);
+    tab = null;
     select("wave");
   }
 

@@ -59,7 +59,37 @@
     const center = h("div.wave-center", headline, deckHost, trackBar, transport, continueBtn, chips);
     const toast = h("div.wave-toast");
 
-    const page = h("div.page.wave-page", canvas, scrim, h("div.wave-hero", toolbar, island, hud, center), toast);
+    // The hero fills the screen; the feed starts below its bottom edge and shows once you scroll.
+    const feed = V.buildFeed();
+    const hint = h("button.scroll-hint", { onclick: () => scrollTo(scroller.clientHeight - 80) },
+      h("span", "подборки"), V.icon("chevronDown"));
+    const hero = h("div.wave-hero", hud, center, hint);
+    const feedHost = h("div.feed-host", feed.el);
+    const scroller = h("div.wave-scroll", hero, feedHost);
+    const page = h("div.page.wave-page", canvas, scrim, scroller, toolbar, island, toast);
+
+    let cancelScroll = null;
+    function scrollTo(y) {
+      cancelScroll?.();
+      cancelScroll = V.animateValue(scroller.scrollTop, y, 0.5, (v) => { scroller.scrollTop = v; });
+    }
+    /// Clicking the open Wave tab goes back to the top, like tapping the status bar.
+    V.waveScrollTop = () => scrollTo(0);
+
+    V.waveHeroFocused = true;
+    scroller.addEventListener("scroll", () => {
+      const y = scroller.scrollTop;
+      // At the very top the mini player steps aside; as soon as you scroll it comes back.
+      const focused = y <= 12;
+      if (focused !== V.waveHeroFocused) {
+        V.waveHeroFocused = focused;
+        feedHost.classList.toggle("shown", !focused);
+        V.emit("hero", focused);
+      }
+      // The visualizer only renders while the hero is on screen.
+      canvas.classList.toggle("offscreen", y > scroller.clientHeight * 0.85);
+      scrim.style.opacity = String(Math.max(0, 1 - y / scroller.clientHeight));
+    }, { passive: true });
 
     // ---- behaviour ----
     let toastTimer = null;
@@ -177,6 +207,7 @@
     });
 
     V.waveLoad = async () => {
+      feed.load();
       try { characters = await V.invoke("wave_characters"); } catch (_) { characters = []; }
       try { lastWave = await V.invoke("wave_last"); } catch (_) { lastWave = null; }
       renderCenter();
