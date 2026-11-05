@@ -47,7 +47,7 @@ WebView2: так дешевле всего получить плавные пр�
 | `src/media.rs` | медиаклавиши и флайаут Windows (SMTC) | — |
 | `ui/visualizer.js` | WebGL2-шейдер: ASCII-дыхание и «Дым» | `Visual/CoverVisualizer.swift` |
 
-Волна учится так же, как на iPhone: каждый трек отправляет `trackStarted` и
+Волна учится так же, как в мобильном приложении: каждый трек отправляет `trackStarted` и
 `trackFinished` или `skip` в rotor-сессию. Каждое прослушивание уходит в `play-audio`
 с `from=radio-mobile-user-onyourwave`.
 
