@@ -12,6 +12,8 @@ pub const UNAUTHORIZED: &str = "unauthorized";
 const BASE_URL: &str = "https://api.music.yandex.net";
 /// Client header of the Android app, the one the music API expects.
 const CLIENT_HEADER: &str = "YandexMusicAndroid/24023621";
+/// Desktop client header, needed by get-file-info (the signature is checked against it).
+const DESKTOP_CLIENT: &str = "YandexMusicDesktopAppWindows/5.95.0";
 const BAD_RESPONSE: &str = "Непонятный ответ сервера";
 
 /// A track as the UI shows it.
@@ -148,21 +150,47 @@ async fn get(token: &str, path: &str) -> Result<Value, String> {
 }
 
 async fn get_query(token: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
-    let request = http()
-        .get(format!("{BASE_URL}/{path}"))
-        .query(query);
-    send(token, request).await
+    get_as(token, path, query, CLIENT_HEADER).await
+}
+
+/// GET as the desktop app: some signed endpoints only accept its client header.
+pub async fn desktop_get(token: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
+    get_as(token, path, query, DESKTOP_CLIENT).await
+}
+
+async fn get_as(token: &str, path: &str, query: &[(&str, &str)], client: &str) -> Result<Value, String> {
+    let request = http().get(format!("{BASE_URL}/{path}")).query(query);
+    send(token, request, client).await
 }
 
 async fn post_form(token: &str, path: &str, form: &[(&str, String)]) -> Result<Value, String> {
     let request = http().post(format!("{BASE_URL}/{path}")).form(form);
-    send(token, request).await
+    send(token, request, CLIENT_HEADER).await
 }
 
-async fn send(token: &str, request: reqwest::RequestBuilder) -> Result<Value, String> {
+/// Track download-info: the list of stream variants (mp3 is the legacy path).
+pub async fn download_info(token: &str, track_id: &str) -> Result<Value, String> {
+    get(token, &format!("tracks/{track_id}/download-info")).await
+}
+
+/// Raw bytes from a CDN link; no token, the links are already signed.
+pub async fn download_bytes(url: &str) -> Result<Vec<u8>, String> {
+    let response = http().get(url).send().await.map_err(|e| format!("Нет связи с сервером: {e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("Сервер ответил {}", response.status().as_u16()));
+    }
+    response.bytes().await.map(|b| b.to_vec()).map_err(|e| e.to_string())
+}
+
+pub async fn download_text(url: &str) -> Result<String, String> {
+    let bytes = download_bytes(url).await?;
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+async fn send(token: &str, request: reqwest::RequestBuilder, client: &str) -> Result<Value, String> {
     let response = request
         .header("Authorization", format!("OAuth {token}"))
-        .header("X-Yandex-Music-Client", CLIENT_HEADER)
+        .header("X-Yandex-Music-Client", client)
         .header("Accept-Language", "ru")
         .send()
         .await

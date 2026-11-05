@@ -2,6 +2,7 @@
 
 mod api;
 mod auth;
+mod stream;
 
 use auth::Session;
 use tauri::{AppHandle, Emitter};
@@ -37,6 +38,12 @@ async fn search(text: String) -> Result<Vec<api::TrackView>, String> {
 }
 
 #[tauri::command]
+async fn resolve_stream(track_id: String, quality: String) -> Result<stream::StreamSource, String> {
+    let token = auth::stored_token()?.ok_or("Нужен вход")?;
+    stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await
+}
+
+#[tauri::command]
 async fn login_with_token(token: String) -> Result<Session, String> {
     auth::login_with_token(token.trim()).await
 }
@@ -64,7 +71,8 @@ fn main() {
             logout,
             liked_tracks,
             playlists,
-            search
+            search,
+            resolve_stream
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");

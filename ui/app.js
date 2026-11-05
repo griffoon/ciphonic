@@ -63,7 +63,7 @@ function renderRows(container, items, emptyText, onClick) {
 
 async function loadCollection() {
   try {
-    renderRows($("#liked"), await invoke("liked_tracks"), "пусто");
+    renderRows($("#liked"), await invoke("liked_tracks"), "пусто", inspectTrack);
   } catch (error) {
     renderRows($("#liked"), [], String(error));
   }
@@ -74,13 +74,28 @@ async function loadCollection() {
   }
 }
 
+// Until the player exists, a click checks that the track resolves to a playable stream.
+async function inspectTrack(track) {
+  $("#now-title").textContent = `${track.artists} — ${track.title}`;
+  $("#now-stream").textContent = "// ищу поток…";
+  document.querySelector('nav a[data-screen="now"]').click();
+  try {
+    const s = await invoke("resolve_stream", { trackId: track.id, quality: "lossless" });
+    const codec = s.codec.replace("-mp4", "").toUpperCase();
+    const rate = s.kbps ? ` | ${s.kbps} kbps` : "";
+    $("#now-stream").textContent = `// ${codec}${rate} | ${s.local ? "расшифровано" : "по ссылке"}`;
+  } catch (error) {
+    $("#now-stream").textContent = `// ошибка: ${error}`;
+  }
+}
+
 $("#search-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const text = $("#query").value.trim();
   if (!text) return;
   renderRows($("#results"), [], "ищу…");
   try {
-    renderRows($("#results"), await invoke("search", { text }), "ничего не нашлось");
+    renderRows($("#results"), await invoke("search", { text }), "ничего не нашлось", inspectTrack);
   } catch (error) {
     renderRows($("#results"), [], String(error));
   }
