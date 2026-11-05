@@ -15,6 +15,7 @@
     const canvas = h("canvas.viz.on.ws-viz");
     const viz = window.Visualizer ? window.Visualizer.create(canvas) : null;
     viz?.setEffect(4);
+    viz?.setCalm(V.calm());
     viz?.setCover(V.coverImage || null);
     viz?.setAccent(V.accentRGB);
     viz?.setPlaying(P.isPlaying);

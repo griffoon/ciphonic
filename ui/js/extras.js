@@ -322,6 +322,7 @@
     const canvas = h("canvas.viz.on");
     const viz = window.Visualizer ? window.Visualizer.create(canvas) : null;
     viz?.setEffect(V.store.get("visualizerEffect", 1));
+    viz?.setCalm(V.calm());
     viz?.setCover(V.coverImage || null);
     viz?.setAccent(V.accentRGB);
     viz?.setPlaying(P.isPlaying);

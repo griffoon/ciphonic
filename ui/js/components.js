@@ -33,7 +33,7 @@
   /// A cover that bumps on each kick (KickBounce).
   V.kickBounce = (el) => {
     V.on("kick", (strength) => {
-      if (!el.isConnected || !P.isPlaying) return;
+      if (!el.isConnected || !P.isPlaying || V.calm()) return;
       el.animate(
         [{ transform: `scale(${1 + 0.035 * (0.5 + strength)})` }, { transform: "scale(1)" }],
         { duration: V.springs.bouncy.ms, easing: V.springs.bouncy.easing },

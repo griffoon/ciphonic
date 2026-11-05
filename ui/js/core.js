@@ -64,6 +64,18 @@ window.V = window.V || {};
     },
   };
 
+  // ---------- photosensitivity-safe mode ----------
+  /// «Без вспышек»: no flashes, strobing sparkles, beat pulses or scrambling text.
+  /// Until the user picks, it follows Windows' «Animation effects» (prefers-reduced-motion).
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  V.calm = () => V.store.get("calmVisuals", Boolean(reducedMotion?.matches));
+  V.setCalm = (on) => {
+    V.store.set("calmVisuals", on);
+    document.documentElement.classList.toggle("calm", on);
+    V.emit("calm", on);
+  };
+  document.documentElement.classList.toggle("calm", V.calm());
+
   // ---------- formatting ----------
   V.time = (seconds) => {
     const s = Math.max(0, Math.round(seconds || 0));
@@ -231,6 +243,10 @@ window.V = window.V || {};
     if (el._scrambleText === text) return;
     el._scrambleText = text;
     cancelAnimationFrame(el._scrambleFrame);
+    if (V.calm()) {
+      el.textContent = text;
+      return;
+    }
     const chars = Array.from(text || "");
     const start = performance.now();
     const step = () => {

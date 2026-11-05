@@ -14,6 +14,8 @@
     const canvas = h("canvas.viz", { id: "viz" });
     V.viz = window.Visualizer ? window.Visualizer.create(canvas) : null;
     V.viz?.setEffect(V.store.get("visualizerEffect", 1));
+    V.viz?.setCalm(V.calm());
+    V.on("calm", (on) => V.viz?.setCalm(on));
     const scrim = h("div.wave-scrim");
 
     // ---- toolbar: My Wave lives top-left, settings top-right ----
@@ -218,7 +220,7 @@
     V.on("log", renderHud);
     V.on("levels", (levels) => V.viz?.setLevels(levels));
     V.on("kick", (strength) => {
-      if (!P.isPlaying) return;
+      if (!P.isPlaying || V.calm()) return;
       playBtn.animate([
         { transform: `scale(${1 + 0.06 * (0.6 + strength * 0.4)})`, boxShadow: "0 0 60px var(--acid-glow)" },
         { transform: "scale(1)", boxShadow: "0 0 20px var(--acid-glow)" },

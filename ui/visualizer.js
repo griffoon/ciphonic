@@ -25,6 +25,8 @@ uniform float uHighHit;
 uniform float uHasCover;
 uniform float uEffect;
 uniform float uBeatPhase;
+// 1 in the photosensitivity-safe mode: no flicker, no strobing sparkles, no jitter.
+uniform float uCalm;
 uniform vec3 uAccent;
 uniform vec3 uCore;
 uniform vec3 uGlow;
@@ -81,7 +83,7 @@ vec3 smoke(vec2 uv) {
   col = mix(col, uCore, clamp(length(q) * 0.85 - 0.15, 0.0, 1.0));
   col += uCore * pow(clamp(f, 0.0, 1.0), 3.0) * (0.6 + 1.4 * uBass);
   float intensity = cloud * (0.45 + 0.9 * f) * (0.75 + 0.45 * uBass + 0.35 * uKick);
-  float streak = pow(abs(sin(p.x * 14.0 + f * 7.0 + t * 5.0)), 48.0) * (uHigh * 0.6 + uHighHit) * cloud;
+  float streak = pow(abs(sin(p.x * 14.0 + f * 7.0 + t * 5.0)), 48.0) * (uHigh * 0.6 + uHighHit) * cloud * (1.0 - uCalm);
   return col * intensity + streak * uGlow + uFlash * 0.08 * uCore;
 }
 
@@ -104,8 +106,8 @@ void main() {
     // Breath: the image never moves; light, density and glyph choice do.
     l = coverL(cuv, t);
     l = clamp((l - 0.5) * (1.2 + 0.5 * uBass) + 0.5 + 0.22 * uBass + 0.12 * uKick, 0.0, 1.0);
-    jitter = (hash21(cell + floor(t * 8.0)) - 0.5) * uMid * 0.5;
-    hot = step(1.0 - uHigh * 0.05 - uHighHit * 0.14, hash21(cell + floor(t * 20.0)));
+    jitter = (hash21(cell + floor(t * 8.0)) - 0.5) * uMid * 0.5 * (1.0 - uCalm);
+    hot = step(1.0 - uHigh * 0.05 - uHighHit * 0.14, hash21(cell + floor(t * 20.0))) * (1.0 - uCalm);
   } else if (fx == 1) {
     // Relief: luminance is height; bass pushes bright regions toward the viewer.
     vec2 c = cuv - 0.5;
@@ -123,8 +125,8 @@ void main() {
     float base = coverL(cuv, t);
     float d = uBeatPhase - cuv.y;
     float trail = d > 0.0 ? exp(-d * 5.0) : 0.0;
-    float head = exp(-abs(d) * 60.0);
-    float noise = step(1.0 - uHighHit * 0.2 - uHigh * 0.03, hash21(cell + floor(t * 30.0)));
+    float head = exp(-abs(d) * 60.0) * (1.0 - 0.6 * uCalm);
+    float noise = step(1.0 - uHighHit * 0.2 - uHigh * 0.03, hash21(cell + floor(t * 30.0))) * (1.0 - uCalm);
     l = clamp(base * (0.18 + 0.9 * trail) + head * 0.8 + noise * 0.5, 0.0, 1.0);
     hot = head + noise;
   } else {
@@ -136,8 +138,8 @@ void main() {
     float trail = exp(-d * (9.0 - uMid * 5.0));
     float tip = exp(-d * 120.0);
     l = clamp(base * (0.15 + 1.1 * trail) + tip * 0.6, 0.0, 1.0);
-    jitter = (hash21(cell + floor(t * 14.0)) - 0.5) * 0.4 * trail;
-    hot = tip + step(1.0 - uHighHit * 0.1, hash21(cell + floor(t * 22.0)));
+    jitter = (hash21(cell + floor(t * 14.0)) - 0.5) * 0.4 * trail * (1.0 - uCalm);
+    hot = tip + step(1.0 - uHighHit * 0.1, hash21(cell + floor(t * 22.0))) * (1.0 - uCalm);
   }
 
   l *= smoothstep(1.2, 0.25, length((cuv - 0.5) * vec2(uRes.x / uRes.y, 1.0)));
@@ -149,7 +151,7 @@ void main() {
 
   const UNIFORMS = [
     "uRes", "uGrid", "uN", "uTime", "uBass", "uMid", "uHigh", "uKick", "uFlash", "uMidHit", "uHighHit",
-    "uHasCover", "uEffect", "uBeatPhase", "uAccent", "uCore", "uGlow", "uShade", "uCover", "uAtlas",
+    "uHasCover", "uEffect", "uBeatPhase", "uCalm", "uAccent", "uCore", "uGlow", "uShade", "uCover", "uAtlas",
   ];
   /// Binary glyph ramp, darkest first.
   const GLYPHS = [" ", ".", "0", "1"];
@@ -219,7 +221,7 @@ void main() {
     };
   }
 
-  const noop = { supported: false, setLevels() {}, setCover() {}, setEffect() {}, setAccent() {}, setPlaying() {}, dispose() {} };
+  const noop = { supported: false, setLevels() {}, setCover() {}, setEffect() {}, setAccent() {}, setPlaying() {}, setCalm() {}, dispose() {} };
 
   function create(canvas) {
     const gl = canvas.getContext("webgl2", { alpha: false, antialias: false, powerPreference: "high-performance" });
@@ -269,11 +271,18 @@ void main() {
       const live = s.playing && t.playing;
       const ease = (current, target, rate) => current + (target - current) * Math.min(1, dt * rate);
       // Levels are already what is audible now; only light smoothing so it doesn't flicker.
-      s.bass = ease(s.bass, live ? t.bass : 0, 20);
-      s.mid = ease(s.mid, live ? t.mid : 0, 12);
-      s.high = ease(s.high, live ? t.high : 0, 24);
-      s.midHit = live ? t.midHit : s.midHit * Math.exp(-dt * 6);
-      s.highHit = live ? t.highHit : s.highHit * Math.exp(-dt * 10);
+      // The calm mode slows every change about four times, so brightness never jumps.
+      const k = s.calm ? 0.25 : 1;
+      s.bass = ease(s.bass, live ? t.bass : 0, 20 * k);
+      s.mid = ease(s.mid, live ? t.mid : 0, 12 * k);
+      s.high = ease(s.high, live ? t.high : 0, 24 * k);
+      if (s.calm) {
+        s.midHit = ease(s.midHit, live ? t.midHit : 0, 3);
+        s.highHit = ease(s.highHit, live ? t.highHit : 0, 3);
+      } else {
+        s.midHit = live ? t.midHit : s.midHit * Math.exp(-dt * 6);
+        s.highHit = live ? t.highHit : s.highHit * Math.exp(-dt * 10);
+      }
       s.kick *= Math.exp(-dt * 7);
       s.flash *= Math.exp(-dt * 9);
       s.beatPhase = Math.min(1.3, s.beatPhase + dt * 2.1);
@@ -296,7 +305,8 @@ void main() {
       gl.uniform1f(u.uMid, s.mid);
       gl.uniform1f(u.uHigh, s.high);
       gl.uniform1f(u.uKick, s.kick);
-      gl.uniform1f(u.uFlash, s.flash);
+      gl.uniform1f(u.uFlash, s.calm ? 0 : s.flash);
+      gl.uniform1f(u.uCalm, s.calm ? 1 : 0);
       gl.uniform1f(u.uMidHit, s.midHit);
       gl.uniform1f(u.uHighHit, s.highHit);
       gl.uniform1f(u.uHasCover, s.hasCover);
@@ -337,13 +347,19 @@ void main() {
         if (levels.beat !== s.lastBeat) {
           s.lastBeat = levels.beat;
           if (s.playing) {
-            s.kick = Math.max(s.kick, 0.55 + 0.45 * levels.kickStrength);
-            s.flash = Math.max(s.flash, 0.5 + 0.4 * levels.kickStrength);
+            // The calm mode keeps a soft swell on the beat and drops the white flash entirely.
+            s.kick = Math.max(s.kick, s.calm ? 0.15 * levels.kickStrength : 0.55 + 0.45 * levels.kickStrength);
+            if (!s.calm) s.flash = Math.max(s.flash, 0.5 + 0.4 * levels.kickStrength);
             s.beatPhase = 0;
           }
         }
       },
       setEffect(index) { s.effect = index; },
+      /// Photosensitivity-safe mode: no flashes, no strobing sparkles, slow changes.
+      setCalm(calm) {
+        s.calm = Boolean(calm);
+        if (s.calm) s.flash = 0;
+      },
       setAccent(rgb) { s.accent = rgb || ACID; },
       /// `image` is a loaded, same-origin image (the cover through the Rust proxy), or null.
       setCover(image) {
@@ -356,7 +372,7 @@ void main() {
         gl.bindTexture(gl.TEXTURE_2D, coverTex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         s.hasCover = 1;
-        s.flash = 1;
+        if (!s.calm) s.flash = 1;
         try {
           s.smoke = smokePalette(image);
         } catch (_) {

@@ -198,6 +198,14 @@
         V.sheet.close();
         V.openSettings();
       })),
+      V.terminalLabel("доступность"),
+      h("div.choice-list", choice("Без вспышек",
+        "визуализатор не мигает и не дёргается на басу, кнопки не пульсируют — для тех, кому вредны вспышки",
+        V.calm(), () => {
+          V.setCalm(!V.calm());
+          V.sheet.close();
+          V.openSettings();
+        })),
       h("button.logout", { onclick: async () => { V.sheet.closeAll(); await V.invoke("logout"); } }, "Выйти из аккаунта"));
     V.sheet.open(page);
   };
