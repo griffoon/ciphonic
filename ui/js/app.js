@@ -14,6 +14,7 @@
 
   // ---------- accent (Theme.swift) ----------
   function setAccent(rgb) {
+    V.accentRGB = rgb;
     const [r, g, b] = rgb.map((c) => Math.round(c * 255));
     document.documentElement.style.setProperty("--acid", `rgb(${r}, ${g}, ${b})`);
     document.documentElement.style.setProperty("--acid-rgb", `${r}, ${g}, ${b}`);
@@ -28,6 +29,7 @@
       if (!data || mine !== themeToken) return;
       const image = await V.loadImage(data);
       if (mine !== themeToken) return;
+      V.coverImage = image;
       V.viz?.setCover(image);
       const follows = V.store.get("coverAccent", true);
       setAccent((follows && V.dominantAccent(V.pixels(image, 32, 32))) || ACID);

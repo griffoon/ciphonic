@@ -1210,6 +1210,116 @@ body.has-sheet .root { border-radius: 18px; }
 .search-empty { display: grid; justify-items: center; gap: 10px; padding: 80px 0; color: var(--dim); font: 15px var(--sans); }
 .search-empty .icon { width: 44px; height: 44px; opacity: 0.6; }
 
+/* ---------- Wave settings ---------- */
+.ws-sheet .sheet-body { overflow: hidden; }
+.ws { position: relative; height: 100%; }
+.ws-viz { opacity: 0.55; }
+.ws-fade { position: absolute; inset: 0; background: linear-gradient(rgba(5, 5, 6, 0.2), rgba(5, 5, 6, 0.85)); pointer-events: none; }
+.ws-column {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 16px 22px;
+}
+.ws-top { display: flex; justify-content: flex-end; }
+.ws-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: 500 13px var(--sans);
+  background: rgba(255, 255, 255, 0.08);
+}
+.ws-reset .icon { width: 14px; height: 14px; }
+.ws-head { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.ws-kicker { font: 500 12px var(--mono); color: rgba(255, 255, 255, 0.55); }
+.ws-summary { font: 30px var(--display); line-height: 1.1; text-shadow: 0 0 18px rgba(var(--acid-rgb), 0.35); min-height: 1.1em; }
+.ws-drums { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; min-height: 0; }
+.drum { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.ws-drums, .ws-column { min-width: 0; }
+.drum-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px; }
+.drum-title { font: 15px var(--display); }
+.drum-hint { font: 10px var(--mono); color: rgba(255, 255, 255, 0.35); }
+.drum-body { position: relative; height: 48px; min-width: 0; }
+/* The lit window the picked option lands in. */
+.drum-window {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 140px;
+  height: 48px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(var(--acid-rgb), 0.14);
+  border: 1px solid var(--acid);
+  backdrop-filter: blur(10px);
+}
+.drum-strip {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 48px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-inline: calc(50% - 70px);
+  scrollbar-width: none;
+  cursor: grab;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+.drum-strip::-webkit-scrollbar { display: none; }
+.drum-strip.dragging { scroll-snap-type: none; cursor: grabbing; }
+.drum-item {
+  flex: none;
+  width: 140px;
+  height: 48px;
+  scroll-snap-align: center;
+  font: 500 13px var(--mono);
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+}
+.drum-item.picked { font: 800 15px var(--mono); color: var(--acid); }
+.ws-stations { display: grid; gap: 8px; }
+.ws-stations .ws-kicker { font-size: 11px; color: rgba(255, 255, 255, 0.5); padding: 0 4px; }
+.ws-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 4px 2px; }
+.ws-chip {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 12px var(--mono);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform var(--snappy-ms) var(--snappy);
+}
+.ws-chip .icon { width: 15px; height: 15px; }
+.ws-chip:active { transform: scale(0.95); }
+.ws-launch {
+  min-height: 56px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--acid);
+  color: var(--ink);
+  font: 800 15px var(--mono);
+  box-shadow: 0 0 18px var(--acid-glow);
+  transition: transform var(--snappy-ms) var(--snappy);
+}
+.ws-launch:active { transform: scale(0.97); }
+
 /* ---------- Settings ---------- */
 .settings-account { font: 12px var(--mono); color: var(--dim); }
 .choice-list { display: grid; }

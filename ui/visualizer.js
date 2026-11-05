@@ -219,7 +219,7 @@ void main() {
     };
   }
 
-  const noop = { supported: false, setLevels() {}, setCover() {}, setEffect() {}, setAccent() {}, setPlaying() {} };
+  const noop = { supported: false, setLevels() {}, setCover() {}, setEffect() {}, setAccent() {}, setPlaying() {}, dispose() {} };
 
   function create(canvas) {
     const gl = canvas.getContext("webgl2", { alpha: false, antialias: false, powerPreference: "high-performance" });
@@ -309,7 +309,9 @@ void main() {
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
+    let disposed = false;
     function frame(now) {
+      if (disposed) return;
       requestAnimationFrame(frame);
       // Hidden canvas: no GPU work, and no time jump when it comes back.
       if (!canvas.classList.contains("on") || canvas.classList.contains("offscreen")) {
@@ -323,6 +325,11 @@ void main() {
 
     return {
       supported: true,
+      /// Stops drawing and frees the GPU context (browsers cap how many can live at once).
+      dispose() {
+        disposed = true;
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+      },
       setPlaying(playing) { s.playing = playing; },
       setLevels(levels) {
         s.target = levels;

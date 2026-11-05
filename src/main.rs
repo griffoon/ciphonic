@@ -188,6 +188,7 @@ fn main() {
             wave::wave_feedback,
             wave::wave_characters,
             wave::wave_last,
+            wave::wave_settings,
             lyrics::get_lyrics,
             media::media_update
         ])

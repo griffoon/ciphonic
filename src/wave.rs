@@ -174,6 +174,83 @@ pub async fn wave_characters() -> Result<Vec<Character>, String> {
         .collect())
 }
 
+/// One tunable setting of My Wave (mood, character, language…) and its choices.
+#[derive(Serialize, Clone, Debug)]
+pub struct SettingRow {
+    pub key: String,
+    pub title: String,
+    pub options: Vec<Character>,
+}
+
+/// An activity wave ("тренировка", "дорога"…), started straight from its seed.
+#[derive(Serialize, Clone, Debug)]
+pub struct Station {
+    pub name: String,
+    pub seed: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct WaveSettings {
+    pub rows: Vec<SettingRow>,
+    pub stations: Vec<Station>,
+}
+
+/// Known settings first, in this order, then whatever else the server adds.
+const KNOWN_SETTINGS: [(&str, &str); 3] = [("moodEnergy", "настроение"), ("diversity", "характер"), ("language", "язык")];
+
+fn setting_rows(settings: &Value) -> Vec<SettingRow> {
+    let Some(restrictions) = settings.get("settingRestrictions").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let mut keys: Vec<String> = KNOWN_SETTINGS.iter().map(|(k, _)| (*k).to_owned()).collect();
+    let mut rest: Vec<String> = restrictions.keys().filter(|k| !keys.contains(k)).cloned().collect();
+    rest.sort();
+    keys.extend(rest);
+    keys.into_iter()
+        .filter_map(|key| {
+            let options: Vec<Character> = restrictions
+                .get(&key)?
+                .get("possibleValues")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter(|o| o.get("unspecified").and_then(Value::as_bool) != Some(true))
+                .filter_map(|o| {
+                    Some(Character { name: models::text_field(o, "name")?, seed: Some(models::text_field(o, "serializedSeed")?), unspecified: false })
+                })
+                .collect();
+            if options.is_empty() {
+                return None;
+            }
+            let title = KNOWN_SETTINGS.iter().find(|(k, _)| *k == key).map_or_else(|| key.to_lowercase(), |(_, t)| (*t).to_owned());
+            Some(SettingRow { key, title, options })
+        })
+        .collect()
+}
+
+fn stations(settings: &Value) -> Vec<Station> {
+    settings
+        .get("blocks")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .flat_map(|block| block.get("items").and_then(Value::as_array).cloned().unwrap_or_default())
+        .filter_map(|item| {
+            let kind = item.pointer("/id/type").and_then(Value::as_str)?;
+            let tag = item.pointer("/id/tag").and_then(Value::as_str)?;
+            Some(Station { name: models::text_field(&item, "name")?, seed: format!("{kind}:{tag}") })
+        })
+        .collect()
+}
+
+/// Everything the Wave settings screen tunes: the drums and the activity waves.
+#[tauri::command]
+pub async fn wave_settings() -> Result<WaveSettings, String> {
+    let token = token()?;
+    let settings = api::get(&token, "rotor/wave/settings").await?;
+    Ok(WaveSettings { rows: setting_rows(&settings), stations: stations(&settings) })
+}
+
 /// The wave this account played last on any device, when it is not plain My Wave.
 #[tauri::command]
 pub async fn wave_last() -> Result<Option<LastWave>, String> {
@@ -231,6 +308,27 @@ mod tests {
     fn short_history_is_kept_whole() {
         let played = vec!["a".to_string(), "b".to_string()];
         assert_eq!(tail(&played), played);
+    }
+
+    #[test]
+    fn settings_rows_keep_known_order_and_drop_unspecified() {
+        let settings = json!({
+            "settingRestrictions": {
+                "language": { "possibleValues": [{ "name": "Русский", "serializedSeed": "language:russian" }] },
+                "moodEnergy": { "possibleValues": [
+                    { "name": "Любое", "unspecified": true, "serializedSeed": "moodEnergy:all" },
+                    { "name": "Весёлое", "serializedSeed": "moodEnergy:fun" }
+                ]},
+                "zzz": { "possibleValues": [{ "name": "X", "serializedSeed": "zzz:x" }] }
+            },
+            "blocks": [{ "items": [{ "id": { "type": "activity", "tag": "workout" }, "name": "Тренировка" }] }]
+        });
+        let rows = setting_rows(&settings);
+        let keys: Vec<&str> = rows.iter().map(|r| r.key.as_str()).collect();
+        assert_eq!(keys, vec!["moodEnergy", "language", "zzz"]);
+        assert_eq!(rows[0].options.len(), 1);
+        assert_eq!(rows[0].title, "настроение");
+        assert_eq!(stations(&settings)[0].seed, "activity:workout");
     }
 
     #[test]

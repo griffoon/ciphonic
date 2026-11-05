@@ -21,7 +21,8 @@
       onclick: () => { P.startWave(); flash("> моя волна"); },
     }, V.icon("waveform"), h("span", "моя волна"));
     const settingsBtn = h("button.glass-round", { title: "Настройки", onclick: () => V.openSettings() }, V.icon("gear"));
-    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn), h("div.wave-toolbar-right", settingsBtn));
+    const tuneBtn = h("button.glass-round", { title: "Настроить волну", onclick: () => V.openWaveSettings() }, V.icon("sliders"));
+    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn, tuneBtn), h("div.wave-toolbar-right", settingsBtn));
     // The screen's name where the Dynamic Island is on the phone.
     const island = h("div.island", "волна");
 
