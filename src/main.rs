@@ -16,8 +16,10 @@ async fn login_with_token(token: String) -> Result<Session, String> {
     auth::login_with_token(token.trim()).await
 }
 
+/// Async on purpose: a sync command runs on the main thread, and creating a webview there
+/// blocks the event loop on Windows. The login page then never loads and the window won't close.
 #[tauri::command]
-fn start_login(app: AppHandle) -> Result<(), String> {
+async fn start_login(app: AppHandle) -> Result<(), String> {
     auth::open_login(&app)
 }
 
