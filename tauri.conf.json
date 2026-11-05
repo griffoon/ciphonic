@@ -14,8 +14,12 @@
         "height": 720,
         "minWidth": 800,
         "minHeight": 560,
-        "backgroundColor": "#050506",
-        "decorations": true
+        "decorations": true,
+        "transparent": true,
+        "theme": "Dark",
+        "windowEffects": {
+          "effects": ["micaDark"]
+        }
       }
     ],
     "withGlobalTauri": true,

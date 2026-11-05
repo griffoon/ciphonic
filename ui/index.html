@@ -17,9 +17,10 @@
       --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
     }
     * { box-sizing: border-box; }
+    /* Transparent so the window's Mica shows through; panels add their own dark tint. */
     html, body {
       margin: 0; height: 100%;
-      background: var(--bg); color: var(--fg);
+      background: transparent; color: var(--fg);
       font-family: var(--mono);
       overflow: hidden;
     }
@@ -30,7 +31,7 @@
       opacity: 0; pointer-events: none; z-index: 0; background: var(--bg);
       transition: opacity .8s cubic-bezier(.2,.8,.2,1);
     }
-    .viz.on { opacity: .6; }
+    .viz.on { opacity: .9; }
     .linkish {
       font: inherit; font-size: 13px; background: none; border: 1px solid #2a2a31; color: var(--dim);
       padding: 11px 16px; cursor: pointer; margin-left: 10px; border-radius: 0;
@@ -39,7 +40,10 @@
     .linkish:hover { color: var(--fg); border-color: var(--fg); }
     body.signed-in .app { display: grid; }
     body.signed-in #auth { display: none; }
-    nav { border-right: 1px solid #1a1a1f; padding: 20px 14px; display: flex; flex-direction: column; }
+    nav {
+      border-right: 1px solid rgba(255,255,255,.06); padding: 20px 14px; display: flex; flex-direction: column;
+      background: rgba(8,8,10,.35);
+    }
     .logo {
       font-family: "Dela Gothic One", var(--mono);
       font-size: 28px; color: var(--accent); margin: 0 0 24px;
@@ -58,7 +62,7 @@
       transition: color .25s ease, border-color .25s ease;
     }
     .who button:hover { color: var(--fg); border-color: var(--fg); }
-    main { padding: 28px 32px; overflow: auto; }
+    main { padding: 28px 32px; overflow: auto; background: rgba(5,5,6,.55); }
     .screen { display: none; animation: rise .45s cubic-bezier(.2,.8,.2,1); }
     .screen.on { display: block; }
     @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -119,6 +123,7 @@
     #auth {
       position: fixed; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 20px; padding: 24px; text-align: center;
+      background: rgba(5,5,6,.55);
     }
     #auth .logo { font-size: 56px; margin: 0; }
     #auth p { color: var(--dim); margin: 0; }

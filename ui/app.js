@@ -132,6 +132,12 @@ async function playAt(index) {
   if (!queueState.wave) document.querySelector('nav a[data-screen="now"]').click();
   loadLyrics(track);
   viz?.setCover(track.cover);
+  invoke("media_update", {
+    title: track.title,
+    artist: track.artists,
+    cover: track.cover ? track.cover.replace("200x200", "400x400") : null,
+    durationMs: track.durationMs || 0,
+  }).catch(logError);
   try {
     const s = await invoke("play_track", { trackId: track.id, quality: "lossless" });
     const codec = s.codec.replace("-mp4", "").toUpperCase();
@@ -213,10 +219,14 @@ async function startWave() {
 
 $("#wave-start").addEventListener("click", startWave);
 
-$("#next").addEventListener("click", async () => {
+async function skipToNext() {
   await finishCurrent("skip", lastStatus?.position ?? 0);
   await nextTrack();
-});
+}
+
+$("#next").addEventListener("click", skipToNext);
+// The Next media key and the flyout's next button land here: the queue lives in the UI.
+listen("media-next", skipToNext);
 
 $("#like").addEventListener("click", () => {
   const track = queueState.current;

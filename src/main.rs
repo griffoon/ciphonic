@@ -4,6 +4,7 @@ mod api;
 mod auth;
 mod analysis;
 mod lyrics;
+mod media;
 mod player;
 mod stream;
 mod wave;
@@ -134,6 +135,9 @@ fn main() {
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
             analysis::start(app.handle().clone());
+            if let Err(e) = media::init(app.handle()) {
+                eprintln!("[media] no media keys: {e}");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -153,7 +157,8 @@ fn main() {
             wave::wave_start,
             wave::wave_more,
             wave::wave_feedback,
-            lyrics::get_lyrics
+            lyrics::get_lyrics,
+            media::media_update
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");
