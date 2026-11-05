@@ -2,6 +2,7 @@
 
 mod api;
 mod auth;
+mod lyrics;
 mod player;
 mod stream;
 mod wave;
@@ -149,7 +150,8 @@ fn main() {
             report_listen,
             wave::wave_start,
             wave::wave_more,
-            wave::wave_feedback
+            wave::wave_feedback,
+            lyrics::get_lyrics
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");

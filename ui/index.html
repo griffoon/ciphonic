@@ -80,6 +80,20 @@
     .time { color: var(--dim); font-size: 12px; min-width: 96px; text-align: right; }
     .player button.ghost { background: none; color: var(--dim); border: 1px solid #2a2a31; }
     .player button.ghost:hover { color: var(--fg); border-color: var(--fg); }
+    .lyrics-meta { color: var(--dim); font-size: 12px; margin-top: 24px; }
+    .lyrics {
+      margin-top: 8px; max-height: 42vh; overflow-y: auto; max-width: 640px;
+      scrollbar-width: none; scroll-behavior: smooth;
+      -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+              mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+    }
+    .lyrics p {
+      margin: 0; padding: 8px 0; font-size: 19px; color: #3a3a44; white-space: pre-line;
+      transition: color .4s ease, transform .5s cubic-bezier(.2,.8,.2,1);
+      transform-origin: left center;
+    }
+    .lyrics p.on { color: var(--fg); transform: scale(1.04); }
+    .lyrics p.past { color: #5a5a66; }
     button.solid {
       font: inherit; font-size: 14px; padding: 12px 22px; cursor: pointer; margin-top: 8px;
       background: var(--accent); color: #050506; border: 0; border-radius: 0;
@@ -176,6 +190,8 @@
           <button id="like" class="ghost">лайк</button>
           <button id="dislike" class="ghost">не то</button>
         </div>
+        <div class="lyrics-meta" id="lyrics-meta"></div>
+        <div class="lyrics" id="lyrics"></div>
       </section>
     </main>
   </div>

@@ -118,6 +118,7 @@ async function playAt(index) {
   $("#now-title").textContent = `${track.artists} — ${track.title}`;
   $("#now-stream").textContent = "// загрузка…";
   document.querySelector('nav a[data-screen="now"]').click();
+  loadLyrics(track);
   try {
     const s = await invoke("play_track", { trackId: track.id, quality: "lossless" });
     const codec = s.codec.replace("-mp4", "").toUpperCase();
@@ -221,6 +222,69 @@ async function onTrackEnded() {
   await nextTrack();
 }
 
+// Lyrics: synced lines light up with the playhead; plain text is shown whole.
+let lyricsTrackId = null;
+let lyricsLines = [];
+let lyricsEls = [];
+let lyricsActive = -1;
+
+async function loadLyrics(track) {
+  lyricsTrackId = track.id;
+  lyricsLines = [];
+  lyricsEls = [];
+  lyricsActive = -1;
+  const box = $("#lyrics");
+  const meta = $("#lyrics-meta");
+  box.replaceChildren();
+  meta.textContent = "// ищу текст…";
+  try {
+    const found = await invoke("get_lyrics", {
+      trackId: track.id,
+      title: track.title,
+      artist: track.artists,
+      durationMs: track.durationMs || 0,
+    });
+    if (lyricsTrackId !== track.id) return; // another track started meanwhile
+    if (!found) {
+      meta.textContent = "// текст не найден";
+      return;
+    }
+    meta.textContent = `// текст: ${found.source}${found.writers?.length ? ` | ${found.writers.join(", ")}` : ""}`;
+    if (found.kind === "synced") {
+      lyricsLines = found.lines;
+      lyricsEls = found.lines.map((line) => {
+        const p = document.createElement("p");
+        p.textContent = line.text || " ";
+        box.append(p);
+        return p;
+      });
+    } else {
+      const p = document.createElement("p");
+      p.textContent = found.text;
+      p.classList.add("on");
+      box.append(p);
+    }
+  } catch (error) {
+    meta.textContent = `// текст: ${error}`;
+  }
+}
+
+function updateLyrics(position) {
+  if (!lyricsLines.length) return;
+  let active = -1;
+  for (let i = 0; i < lyricsLines.length; i++) {
+    if (lyricsLines[i].time <= position + 0.15) active = i;
+    else break;
+  }
+  if (active === lyricsActive) return;
+  lyricsActive = active;
+  lyricsEls.forEach((el, i) => {
+    el.classList.toggle("on", i === active);
+    el.classList.toggle("past", i < active);
+  });
+  if (active >= 0) lyricsEls[active].scrollIntoView({ block: "center" });
+}
+
 function formatSeconds(total) {
   const whole = Math.max(0, Math.floor(total || 0));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
@@ -234,6 +298,7 @@ function renderPlayer(status) {
   $("#bar-fill").style.width = `${(ratio * 100).toFixed(2)}%`;
   $("#bar-time").textContent = `${formatSeconds(status.position)} / ${formatSeconds(status.duration)}`;
   $("#toggle").textContent = status.playing ? "пауза" : "играть";
+  updateLyrics(status.position);
 }
 
 $("#toggle").addEventListener("click", () => {

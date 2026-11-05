@@ -38,7 +38,7 @@ pub struct PlaylistView {
     pub cover: Option<String>,
 }
 
-fn http() -> &'static reqwest::Client {
+pub fn http() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(reqwest::Client::new)
 }
@@ -206,7 +206,7 @@ async fn get(token: &str, path: &str) -> Result<Value, String> {
     get_query(token, path, &[]).await
 }
 
-async fn get_query(token: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
+pub async fn get_query(token: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
     get_as(token, path, query, CLIENT_HEADER).await
 }
 
