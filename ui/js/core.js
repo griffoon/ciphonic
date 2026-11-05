@@ -188,6 +188,12 @@ window.V = window.V || {};
     pencil: stroke('<path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/>'),
     globe: stroke('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
     lock: stroke('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>'),
+    desktop: stroke('<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/>'),
+    phone: stroke('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>'),
+    speakerDevice: stroke('<rect x="6" y="2.5" width="12" height="19" rx="3"/><circle cx="12" cy="14.5" r="3.2"/><path d="M12 7h.01"/>'),
+    speakers: stroke('<rect x="3" y="4" width="9" height="16" rx="2"/><circle cx="7.5" cy="14" r="2.3"/><path d="M15 6h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/><circle cx="18" cy="14" r="1.2"/>'),
+    tv: stroke('<rect x="2.5" y="5" width="19" height="12.5" rx="1.5"/><path d="M8 21h8"/>'),
+    car: stroke('<path d="M5 16V11l2-5h10l2 5v5M3.5 16.5h17M7 19.5v-3M17 19.5v-3"/><circle cx="7.5" cy="13.2" r=".8"/><circle cx="16.5" cy="13.2" r=".8"/>'),
     trash: stroke('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
     arrowUpRight: stroke('<path d="M7 17 17 7M9 7h8v8"/>', "0 0 24 24"),
   };

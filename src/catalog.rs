@@ -46,6 +46,13 @@ pub async fn tracks_by_refs(token: &str, refs: &[String]) -> Result<Vec<TrackVie
     Ok(tracks)
 }
 
+/// Full tracks for `id` or `id:albumId` refs (pulling another device's queue over here).
+#[tauri::command]
+pub async fn tracks(refs: Vec<String>) -> Result<Vec<TrackView>, String> {
+    let (token, _) = auth::account().await?;
+    tracks_by_refs(&token, &refs).await
+}
+
 /// "Мне нравится", newest first as Yandex returns them.
 #[tauri::command]
 pub async fn liked_tracks() -> Result<Vec<TrackView>, String> {

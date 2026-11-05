@@ -1292,6 +1292,48 @@ body.has-sheet .root { border-radius: 18px; }
 .new-row .new-plus { width: 44px; aspect-ratio: 1; border-radius: 3px; display: grid; place-items: center; border: 1px dashed rgba(var(--acid-rgb), 0.6); color: var(--acid); }
 .playlist-row:disabled { opacity: 0.6; }
 
+.card-preview { display: grid; place-items: center; min-height: 300px; margin: 6px 0 18px; }
+.card-preview img { width: min(100%, 420px); border-radius: 6px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); }
+
+/* ---------- devices (Ynison) ---------- */
+.capsule-device {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  font: 700 12px var(--mono);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.capsule-device .icon { width: 15px; height: 15px; flex: none; }
+.dev-now { display: grid; gap: 14px; padding: 6px 0; }
+.dev-top { display: flex; align-items: center; gap: 14px; }
+.dev-cover { width: 72px; }
+.dev-where { font: 700 11px var(--mono); color: var(--acid); }
+.dev-title { font: 700 17px var(--sans); margin-top: 4px; }
+.dev-bar { position: relative; height: 2px; }
+.dev-track, .dev-fill { position: absolute; inset: 0; }
+.dev-track { background: rgba(255, 255, 255, 0.15); }
+.dev-fill { background: var(--acid); transform-origin: left; transform: scaleX(0); transition: transform 1s linear; }
+.dev-times { display: flex; justify-content: space-between; font: 11px var(--mono); color: rgba(255, 255, 255, 0.5); margin-top: -8px; }
+.dev-controls { display: flex; justify-content: center; align-items: center; gap: 28px; }
+.dev-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; transition: transform var(--snappy-ms) var(--snappy); }
+.dev-btn.ring-small { width: 54px; height: 54px; border: 1px solid rgba(255, 255, 255, 0.3); }
+.dev-btn:active { transform: scale(0.9); }
+.dev-take { flex: none; width: 100%; }
+.dev-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.dev-row .icon { width: 22px; height: 22px; color: rgba(255, 255, 255, 0.7); flex: none; }
+.dev-row.active .icon { color: var(--acid); }
+.dev-name { font: 600 16px var(--sans); }
+.dev-state { font: 11px var(--mono); color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
+.dev-note { font: 12px var(--sans); color: rgba(255, 255, 255, 0.45); margin-top: 22px; line-height: 1.5; }
+
 /* ---------- idle mode ---------- */
 .idle {
   position: fixed;

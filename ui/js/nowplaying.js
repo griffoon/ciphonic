@@ -533,6 +533,7 @@
         row("Добавить в плейлист", "listPlus", () => V.route.destination("addToPlaylist", { track })),
         row("Поделиться", "share", () => V.share(V.trackLink(track))),
         row("Найти клип", "play", () => V.openClip(track)),
+        row("Карточка трека", "album", () => V.openShareCard(track)),
         row("О треке", "info", () => V.route.destination("about", { track })),
         V.terminalLabel("перейти"),
         ...(track.artistList || []).map((a) => row(a.name, "mic", () => V.route.destination("artist", { id: a.id, name: a.name }))),

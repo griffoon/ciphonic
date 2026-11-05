@@ -38,6 +38,8 @@
   V.player = P;
 
   let listen = null; // { track, playId, from }
+  /// Where to start the next load (pulling a track from another device mid-way).
+  let resumeAt = 0;
   let failures = 0;
   let loadToken = 0;
   let waveLoading = false;
@@ -146,6 +148,8 @@
       P.elapsedStamp = performance.now();
       loadedAt = performance.now();
       failures = 0;
+      if (resumeAt > 1) P.seek(resumeAt);
+      resumeAt = 0;
       changed();
       if (P.isWave) waveEvent("trackStarted", track, 0, "trackStarted");
       beginListen(track);
@@ -245,9 +249,10 @@
   }
 
   // ---------- public transport ----------
-  P.play = (tracks, startAt = 0) => {
+  P.play = (tracks, startAt = 0, position = 0) => {
     if (!tracks?.length) return;
     reportSkipIfNeeded();
+    resumeAt = position;
     P.source = { kind: "list" };
     P.queue = [...tracks];
     P.index = Math.min(Math.max(startAt, 0), tracks.length - 1);

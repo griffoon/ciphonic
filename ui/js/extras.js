@@ -201,6 +201,119 @@
       } }, V.cover(playlist.cover, 100), h("span", playlist.title), h("span.dim", `${playlist.trackCount} трк`))));
   });
 
+  // ---------- share card (ShareCard.swift) ----------
+  const BLOCKS = Array.from(" ▁▂▃▄▅▆▇█");
+  const POSTER_W = 1080, POSTER_H = 1350, PAD = 64;
+
+  /// The spectrum at the moment of sharing as 32 block characters; a calm line when silent.
+  function frozenBars() {
+    const bands = V.levels.bands || [];
+    const live = bands.some((b) => b > 0.02) && P.isPlaying;
+    return Array.from({ length: 32 }, (_, i) => {
+      if (!live) return BLOCKS[1];
+      const x = (i / 31) * (bands.length - 1);
+      const a = bands[Math.floor(x)] || 0, b = bands[Math.ceil(x)] || 0;
+      const v = a + (b - a) * (x - Math.floor(x)) + (Math.random() - 0.5) * 0.12;
+      return BLOCKS[Math.min(8, Math.max(1, Math.round(v * 8)))];
+    }).join("");
+  }
+
+  /// Fits text to `width` by shrinking the font, at most `lines` lines; returns the lines.
+  function fitText(ctx, text, family, size, minSize, width, lines) {
+    for (let s = size; s >= minSize; s -= 2) {
+      ctx.font = `${s}px ${family}`;
+      const words = text.split(" ");
+      const out = [];
+      let line = "";
+      for (const word of words) {
+        const next = line ? `${line} ${word}` : word;
+        if (ctx.measureText(next).width <= width) line = next;
+        else { out.push(line); line = word; }
+      }
+      out.push(line);
+      if (out.length <= lines && out.every((l) => ctx.measureText(l).width <= width)) return { lines: out, size: s };
+    }
+    return { lines: [text], size: minSize };
+  }
+
+  async function renderPoster(track) {
+    await document.fonts.load('84px "Dela Gothic One"');
+    const canvas = document.createElement("canvas");
+    canvas.width = POSTER_W;
+    canvas.height = POSTER_H;
+    const ctx = canvas.getContext("2d");
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--acid").trim() || "#c6ff00";
+    ctx.fillStyle = "#050506";
+    ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+    ctx.textBaseline = "top";
+
+    ctx.fillStyle = accent;
+    ctx.font = "bold 30px ui-monospace, Consolas, monospace";
+    ctx.fillText("> volna | now playing", PAD, PAD);
+
+    const side = 600, x = (POSTER_W - side) / 2, y = PAD + 30 + 44;
+    try {
+      const data = await V.coverData(V.coverSize(track.cover, 1000));
+      if (data) {
+        const image = await V.loadImage(data);
+        ctx.drawImage(image, x, y, side, side);
+      }
+    } catch (_) {
+      ctx.fillStyle = "rgba(255,255,255,.06)";
+      ctx.fillRect(x, y, side, side);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.2)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, side, side);
+
+    let ty = y + side + 56;
+    ctx.fillStyle = "#fff";
+    const artist = fitText(ctx, track.artists, '"Dela Gothic One"', 84, 40, POSTER_W - PAD * 2, 2);
+    ctx.font = `${artist.size}px "Dela Gothic One"`;
+    for (const line of artist.lines) { ctx.fillText(line, PAD, ty); ty += artist.size * 1.12; }
+
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    const title = fitText(ctx, V.fullTitle(track).toLowerCase(), "ui-monospace, Consolas, monospace", 38, 24, POSTER_W - PAD * 2, 2);
+    ctx.font = `500 ${title.size}px ui-monospace, Consolas, monospace`;
+    ty += 10;
+    for (const line of title.lines) { ctx.fillText(line, PAD, ty); ty += title.size * 1.25; }
+
+    ctx.fillStyle = accent;
+    ctx.globalAlpha = 0.9;
+    ctx.font = "40px ui-monospace, Consolas, monospace";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(frozenBars(), PAD, POSTER_H - PAD);
+    ctx.globalAlpha = 1;
+    return canvas;
+  }
+
+  V.openShareCard = async (track) => {
+    const preview = h("div.card-preview", V.loading());
+    const copyBtn = h("button.btn-acid", { disabled: true }, V.icon("share"), "СКОПИРОВАТЬ");
+    const saveBtn = h("button.btn-outline", { disabled: true }, V.icon("listPlus"), "СОХРАНИТЬ");
+    V.sheet.open(h("div.sheet-page.share-card",
+      h("button.sheet-close", { onclick: () => V.sheet.close() }, V.icon("xmark"), "Готово"),
+      preview,
+      h("div.t-actions", copyBtn, saveBtn)));
+    const canvas = await renderPoster(track);
+    const url = canvas.toDataURL("image/png");
+    preview.replaceChildren(h("img", { src: url, alt: "" }));
+    copyBtn.disabled = false;
+    saveBtn.disabled = false;
+    copyBtn.onclick = () => canvas.toBlob(async (blob) => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        V.toast("> карточка скопирована");
+      } catch (_) {
+        V.toast("> не получилось скопировать");
+      }
+    }, "image/png");
+    saveBtn.onclick = () => {
+      const name = `volna-${(track.artists + " " + track.title).replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.png`;
+      h("a", { href: url, download: name }).click();
+    };
+  };
+
   // ---------- idle mode ----------
   /// «Режим покоя»: the visualizer fills the screen, the controls shrink to three thin glyphs,
   /// the clock moves to the bottom. Click shows the close button for a moment; Esc leaves.

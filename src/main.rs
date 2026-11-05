@@ -12,6 +12,7 @@ mod models;
 mod player;
 mod stream;
 mod wave;
+mod ynison;
 
 use std::sync::Mutex;
 
@@ -154,6 +155,7 @@ fn main() {
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
             app.manage(Preloaded::default());
+            app.manage(ynison::Ynison::default());
             analysis::start(app.handle().clone());
             if let Err(e) = media::init(app.handle()) {
                 eprintln!("[media] no media keys: {e}");
@@ -184,6 +186,11 @@ fn main() {
             catalog::cover_data,
             feed::home_feed,
             feed::albums,
+            catalog::tracks,
+            ynison::ynison_start,
+            ynison::ynison_snapshot,
+            ynison::ynison_pause,
+            ynison::ynison_skip,
             extras::history,
             extras::similar_tracks,
             extras::credits,

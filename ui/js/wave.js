@@ -23,7 +23,20 @@
     const settingsBtn = h("button.glass-round", { title: "Настройки", onclick: () => V.openSettings() }, V.icon("gear"));
     const tuneBtn = h("button.glass-round", { title: "Настроить волну", onclick: () => V.openWaveSettings() }, V.icon("sliders"));
     const idleBtn = h("button.glass-round", { title: "Режим покоя", onclick: () => V.openIdle() }, V.icon("expand"));
-    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn, tuneBtn), h("div.wave-toolbar-right", idleBtn, settingsBtn));
+    const devicesBtn = h("button.glass-round", { title: "Устройства", onclick: () => V.route.destination("devices", {}) }, V.icon("speakerDevice"));
+    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn, tuneBtn), h("div.wave-toolbar-right", idleBtn, devicesBtn, settingsBtn));
+    // «на пк: трек» when another device plays and this one doesn't.
+    const elsewhere = h("button.capsule-device", { onclick: () => V.route.destination("devices", {}) });
+    function renderElsewhere() {
+      const active = V.ynisonActive?.();
+      const other = V.ynisonCurrent?.();
+      const show = !P.isPlaying && active && other && !V.ynison.paused;
+      elsewhere.hidden = !show;
+      if (show) elsewhere.replaceChildren(V.icon("speakers"), `на ${active.title.toLowerCase()}: ${other.title.toLowerCase()}`);
+      devicesBtn.replaceChildren(V.icon(V.ynison?.devices?.length ? "speakers" : "speakerDevice"));
+    }
+    V.on("ynison", renderElsewhere);
+    V.on("player", renderElsewhere);
     // The screen's name where the Dynamic Island is on the phone.
     const island = h("div.island", "волна");
 
@@ -58,7 +71,8 @@
     const continueBtn = h("button.capsule-acid", { onclick: () => lastWave && P.startWave(lastWave.seeds, lastWave.name || MY_WAVE) });
     const chips = h("div.chips");
 
-    const center = h("div.wave-center", headline, deckHost, trackBar, transport, continueBtn, chips);
+    const center = h("div.wave-center", headline, deckHost, trackBar, transport, elsewhere, continueBtn, chips);
+    elsewhere.hidden = true;
     const toast = h("div.wave-toast");
 
     // The hero fills the screen; the feed starts below its bottom edge and shows once you scroll.

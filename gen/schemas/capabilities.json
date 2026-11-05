@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Main window: app commands and event listening only","local":true,"windows":["main"],"permissions":["core:default"]}}
+{"default":{"identifier":"default","description":"Main window: app commands, events, and going full screen for the idle mode","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-set-fullscreen"]}}

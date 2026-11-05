@@ -157,6 +157,7 @@
       buildRoot();
     }
     P.startPolling();
+    V.invoke("ynison_start").catch(V.logError);
     P.loadLikes().then(() => V.libraryLoad?.());
     V.libraryLoad?.();
     V.waveLoad?.();
