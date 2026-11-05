@@ -11,6 +11,31 @@ async fn current_session() -> Result<Option<Session>, String> {
     auth::current_session().await
 }
 
+/// Token plus uid for the calls that need the account.
+async fn signed_in() -> Result<(String, String), String> {
+    let token = auth::stored_token()?.ok_or("Нужен вход")?;
+    let session = api::verify(&token).await?;
+    Ok((token, session.uid))
+}
+
+#[tauri::command]
+async fn liked_tracks() -> Result<Vec<api::TrackView>, String> {
+    let (token, uid) = signed_in().await?;
+    api::liked_tracks(&token, &uid).await
+}
+
+#[tauri::command]
+async fn playlists() -> Result<Vec<api::PlaylistView>, String> {
+    let (token, uid) = signed_in().await?;
+    api::playlists(&token, &uid).await
+}
+
+#[tauri::command]
+async fn search(text: String) -> Result<Vec<api::TrackView>, String> {
+    let token = auth::stored_token()?.ok_or("Нужен вход")?;
+    api::search(&token, text.trim()).await
+}
+
 #[tauri::command]
 async fn login_with_token(token: String) -> Result<Session, String> {
     auth::login_with_token(token.trim()).await
@@ -36,7 +61,10 @@ fn main() {
             current_session,
             start_login,
             login_with_token,
-            logout
+            logout,
+            liked_tracks,
+            playlists,
+            search
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");

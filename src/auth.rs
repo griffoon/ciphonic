@@ -30,7 +30,7 @@ fn entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(SERVICE, ACCOUNT).map_err(|e| e.to_string())
 }
 
-fn stored_token() -> Result<Option<String>, String> {
+pub fn stored_token() -> Result<Option<String>, String> {
     match entry()?.get_password() {
         Ok(token) if !token.is_empty() => Ok(Some(token)),
         Ok(_) | Err(keyring::Error::NoEntry) => Ok(None),

@@ -7,9 +7,84 @@ function showSession(session) {
   document.body.classList.toggle("signed-in", Boolean(session));
   if (session) {
     $("#who-name").textContent = session.displayName || session.login || `uid ${session.uid}`;
+    loadCollection();
   }
   $("#login").disabled = false;
 }
+
+function formatDuration(ms) {
+  const total = Math.round((ms || 0) / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+// Builds rows with textContent only: titles and artists come from the network.
+function renderRows(container, items, emptyText, onClick) {
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = emptyText;
+    container.replaceChildren(empty);
+    return;
+  }
+  container.replaceChildren(...items.map((item) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    if (item.cover) {
+      const img = document.createElement("img");
+      img.src = item.cover;
+      img.alt = "";
+      row.append(img);
+    } else {
+      const blank = document.createElement("div");
+      blank.className = "noimg";
+      row.append(blank);
+    }
+    const text = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "t";
+    title.textContent = item.title;
+    text.append(title);
+    if (item.artists !== undefined) {
+      const artists = document.createElement("div");
+      artists.className = "a";
+      artists.textContent = item.artists;
+      text.append(artists);
+    }
+    row.append(text);
+    const meta = document.createElement("div");
+    meta.className = "d";
+    if (item.durationMs !== undefined) meta.textContent = formatDuration(item.durationMs);
+    if (item.trackCount !== undefined) meta.textContent = `${item.trackCount} трк`;
+    row.append(meta);
+    if (onClick) row.addEventListener("click", () => onClick(item));
+    return row;
+  }));
+}
+
+async function loadCollection() {
+  try {
+    renderRows($("#liked"), await invoke("liked_tracks"), "пусто");
+  } catch (error) {
+    renderRows($("#liked"), [], String(error));
+  }
+  try {
+    renderRows($("#playlists"), await invoke("playlists"), "нет плейлистов");
+  } catch (error) {
+    renderRows($("#playlists"), [], String(error));
+  }
+}
+
+$("#search-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const text = $("#query").value.trim();
+  if (!text) return;
+  renderRows($("#results"), [], "ищу…");
+  try {
+    renderRows($("#results"), await invoke("search", { text }), "ничего не нашлось");
+  } catch (error) {
+    renderRows($("#results"), [], String(error));
+  }
+});
 
 function showLoginError(message) {
   $("#login-error").textContent = message || "";
