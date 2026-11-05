@@ -197,6 +197,7 @@
       { label: liked ? "Убрать из любимых" : "Нравится", icon: liked ? "heartSlash" : "heart", action: () => P.toggleLike(track) },
       { label: "О треке", icon: "info", action: () => V.route.destination("about", { track }) },
       { label: "Поделиться", icon: "share", action: () => V.share(V.trackLink(track)) },
+      { label: "Клип на YouTube", icon: "play", action: () => V.openClip(track) },
       { label: "Добавить в плейлист", icon: "listPlus", action: () => V.route.destination("addToPlaylist", { track }) },
       ...extra,
       { label: "Не рекомендовать", icon: "thumbsDown", destructive: true, action: () => P.dislike(track) },

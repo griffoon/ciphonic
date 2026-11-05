@@ -51,11 +51,21 @@
     }
   };
 
+  /// The clip for a track (a real video, or a YouTube search), asked once per track.
+  const clips = new Map();
+  V.clipFor = (track) => {
+    if (!clips.has(track.id)) {
+      clips.set(track.id, V.invoke("find_clip", { trackId: track.id, artist: track.artists, title: V.fullTitle(track) })
+        .catch((error) => { clips.delete(track.id); throw error; }));
+    }
+    return clips.get(track.id);
+  };
+
   /// The clip: a real video when Yandex links one, otherwise a YouTube search to try.
   V.openClip = async (track) => {
     V.toast("> ищу клип…");
     try {
-      const clip = await V.invoke("find_clip", { trackId: track.id, artist: track.artists, title: V.fullTitle(track) });
+      const clip = await V.clipFor(track);
       await V.invoke("open_url", { url: clip.url });
       V.toast(clip.found ? "> клип открыт" : "> клипа нет, открыл поиск");
     } catch (error) {

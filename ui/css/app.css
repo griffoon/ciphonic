@@ -1213,6 +1213,106 @@ body.has-sheet .root { border-radius: 18px; }
 .search-empty { display: grid; justify-items: center; gap: 10px; padding: 80px 0; color: var(--dim); font: 15px var(--sans); }
 .search-empty .icon { width: 44px; height: 44px; opacity: 0.6; }
 
+/* ---------- volume in the mini player ---------- */
+.mini-volume-box { display: flex; align-items: center; gap: 6px; color: rgba(255, 255, 255, 0.6); }
+.mini-volume-box .icon { width: 15px; height: 15px; }
+.mini-volume { width: 78px; accent-color: var(--acid); cursor: pointer; }
+
+/* ---------- clip badge on the cover ---------- */
+.clip-badge {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  z-index: 3;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 12px var(--mono);
+  color: var(--ink);
+  background: var(--acid);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  transition: transform var(--snappy-ms) var(--snappy);
+}
+.clip-badge .icon { width: 15px; height: 15px; }
+.clip-badge:active { transform: translateX(-50%) scale(0.94); }
+.np-deck .clip-badge { left: auto; right: 14px; bottom: 14px; transform: none; }
+.np-deck .clip-badge:active { transform: scale(0.94); }
+
+/* ---------- artist page ---------- */
+.artist-hero { position: relative; height: 380px; overflow: hidden; }
+.ah-pager, .ah-photo, .ah-blank { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ah-photo { object-fit: cover; }
+.ah-blank { background: radial-gradient(circle at 30% 30%, rgba(var(--acid-rgb), 0.25), transparent 60%), #111; }
+.ah-scrim { position: absolute; inset: 0; background: linear-gradient(rgba(5, 5, 6, 0.1) 30%, rgba(5, 5, 6, 0.92)); pointer-events: none; }
+.ah-prev, .ah-next {
+  position: absolute;
+  top: 40%;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.ah-prev { left: 12px; }
+.ah-next { right: 12px; }
+.ah-next .icon { transform: rotate(180deg); }
+.artist-hero:hover .ah-prev, .artist-hero:hover .ah-next { opacity: 1; }
+.ah-dots { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 2; }
+.ah-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
+.ah-dots span.on { background: #fff; }
+.ah-content { position: absolute; left: 0; right: 0; bottom: 0; max-width: 820px; margin: 0 auto; padding: 20px 28px; display: grid; gap: 12px; }
+.ah-stats { display: flex; gap: 14px; font: 500 12px var(--mono); color: rgba(255, 255, 255, 0.8); }
+.ah-stats span { display: inline-flex; align-items: center; gap: 6px; }
+.ah-stats .icon { width: 14px; height: 14px; }
+.ah-name-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.ah-name { font: 38px var(--display); line-height: 1.05; overflow-wrap: anywhere; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5); }
+.subscribe {
+  flex: none;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 11px var(--mono);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform var(--bouncy-ms) var(--bouncy), color 0.2s ease, border-color 0.2s ease;
+}
+.subscribe .icon { width: 14px; height: 14px; }
+.subscribe.on { color: var(--acid); border-color: var(--acid); }
+.subscribe:active { transform: scale(0.93); }
+.ah-content .t-actions { margin: 0; }
+.artist-page .artist-body { padding-top: 8px !important; }
+.bio-text {
+  font: 15px/1.55 var(--sans);
+  color: rgba(255, 255, 255, 0.85);
+  white-space: pre-line;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  user-select: text;
+}
+.bio-text.open { display: block; }
+.bio .link-acid { margin-top: 8px; }
+.concert { display: flex; gap: 14px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.concert-date { width: 52px; flex: none; text-align: center; }
+.concert-day { font: 22px var(--display); }
+.concert-month { font: 700 11px var(--mono); color: var(--acid); }
+.concert-text { display: grid; gap: 3px; justify-items: start; }
+.concert-city { font: 600 16px var(--sans); }
+.concert-place { font: 12px var(--mono); color: rgba(255, 255, 255, 0.55); }
+.profile-row > span { flex: 1; }
+.profile-row .icon:last-child { width: 13px; height: 13px; color: rgba(255, 255, 255, 0.4); }
+
 /* ---------- «Без вспышек» ---------- */
 /* No pulsing, breathing or nudging decorations; spring motion of panels stays (it's not a flash). */
 .calm .login-icon .icon,

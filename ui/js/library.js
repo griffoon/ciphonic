@@ -157,19 +157,7 @@
     },
 
     artist({ id }) {
-      return loader(() => V.invoke("artist", { id }), ({ artist, popular, albums }) => h("div.content",
-        h("div.artist-head",
-          V.cover(artist.cover, 400, "artist-photo"),
-          h("div",
-            h("div.c-kind", "> type: artist"),
-            h("div.artist-name", artist.name))),
-        h("div.t-actions",
-          h("button.btn-acid", { onclick: () => P.startWave([`artist:${artist.id}`], `Волна: ${artist.name}`) }, V.icon("radiowaves"), "ВОЛНА АРТИСТА"),
-          h("button.btn-outline", { onclick: () => P.play(popular) }, V.glyph("play", 12), "ПОПУЛЯРНОЕ")),
-        popular.length ? V.terminalLabel("популярное") : null,
-        V.trackList(popular.slice(0, 10)),
-        albums.length ? V.terminalLabel(`релизы | ${albums.length}`) : null,
-        V.shelf(albums.map(V.albumCard))));
+      return loader(() => V.invoke("artist", { id }), (page) => V.artistPage(page));
     },
   };
 

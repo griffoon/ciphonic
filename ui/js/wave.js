@@ -69,6 +69,12 @@
     const playBtn = h("button.play-pulse", { onclick: () => (P.current ? P.togglePlay() : P.startWave()) });
     const nextBtn = h("button.ring.big", { title: "Следующий трек", onclick: () => P.next() }, V.glyph("next", 16));
     const transport = h("div.transport", prevBtn, playBtn, nextBtn);
+    // On the Wave screen the mini player is away: the wheel over the controls sets the volume.
+    transport.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      V.nudgeVolume(event.deltaY < 0 ? 0.05 : -0.05);
+    }, { passive: false });
+    transport.title = "Колесо мыши — громкость";
 
     const continueBtn = h("button.capsule-acid", { onclick: () => lastWave && P.startWave(lastWave.seeds, lastWave.name || MY_WAVE) });
     const chips = h("div.chips");

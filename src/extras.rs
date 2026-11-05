@@ -56,8 +56,6 @@ pub struct Clip {
     pub found: bool,
 }
 
-/// Hosts the app may open in the browser.
-const OPENABLE_HOSTS: [&str; 6] = ["youtube.com", "www.youtube.com", "youtu.be", "vimeo.com", "music.yandex.ru", "m.youtube.com"];
 
 fn recent_context(item: &Value) -> Option<RecentContext> {
     let kind = item.get("type").and_then(Value::as_str)?;
@@ -196,11 +194,12 @@ fn video_link(video: &Value) -> Option<String> {
     }
 }
 
-/// Opens a video or a Yandex Music page in the default browser. Other hosts are refused.
+/// Opens a link (a video, an artist's profile, concert tickets) in the default browser.
+/// Only https: no plain http, files or custom schemes.
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
     let parsed = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
-    let allowed = parsed.scheme() == "https" && parsed.host_str().is_some_and(|h| OPENABLE_HOSTS.contains(&h));
+    let allowed = parsed.scheme() == "https" && parsed.host_str().is_some_and(|h| !h.is_empty());
     if !allowed {
         return Err("Эту ссылку открыть нельзя".into());
     }
@@ -349,8 +348,9 @@ mod tests {
     }
 
     #[test]
-    fn open_url_refuses_other_hosts() {
-        assert!(open_url("https://evil.example/x".into()).is_err());
+    fn open_url_refuses_anything_but_https() {
         assert!(open_url("http://youtube.com/x".into()).is_err());
+        assert!(open_url("file:///C:/Windows/notepad.exe".into()).is_err());
+        assert!(open_url("javascript:alert(1)".into()).is_err());
     }
 }

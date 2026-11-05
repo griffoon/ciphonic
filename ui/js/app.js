@@ -232,6 +232,8 @@
     if (event.code === "Space") { event.preventDefault(); P.togglePlay(); }
     if (event.key === "ArrowRight" && event.ctrlKey) P.next();
     if (event.key === "ArrowLeft" && event.ctrlKey) P.previous();
+    if (event.key === "ArrowUp" && event.ctrlKey) { event.preventDefault(); V.nudgeVolume(0.05); }
+    if (event.key === "ArrowDown" && event.ctrlKey) { event.preventDefault(); V.nudgeVolume(-0.05); }
   });
 
   V.invoke("current_session")
