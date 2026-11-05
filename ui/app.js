@@ -63,7 +63,7 @@ function renderRows(container, items, emptyText, onClick) {
 
 async function loadCollection() {
   try {
-    renderRows($("#liked"), await invoke("liked_tracks"), "пусто", inspectTrack);
+    renderRows($("#liked"), await invoke("liked_tracks"), "пусто", playTrack);
   } catch (error) {
     renderRows($("#liked"), [], String(error));
   }
@@ -74,13 +74,12 @@ async function loadCollection() {
   }
 }
 
-// Until the player exists, a click checks that the track resolves to a playable stream.
-async function inspectTrack(track) {
+async function playTrack(track) {
   $("#now-title").textContent = `${track.artists} — ${track.title}`;
-  $("#now-stream").textContent = "// ищу поток…";
+  $("#now-stream").textContent = "// загрузка…";
   document.querySelector('nav a[data-screen="now"]').click();
   try {
-    const s = await invoke("resolve_stream", { trackId: track.id, quality: "lossless" });
+    const s = await invoke("play_track", { trackId: track.id, quality: "lossless" });
     const codec = s.codec.replace("-mp4", "").toUpperCase();
     const rate = s.kbps ? ` | ${s.kbps} kbps` : "";
     $("#now-stream").textContent = `// ${codec}${rate} | ${s.local ? "расшифровано" : "по ссылке"}`;
@@ -89,13 +88,48 @@ async function inspectTrack(track) {
   }
 }
 
+function formatSeconds(total) {
+  const whole = Math.max(0, Math.floor(total || 0));
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+let lastStatus = null;
+
+function renderPlayer(status) {
+  lastStatus = status;
+  const ratio = status.duration > 0 ? Math.min(1, status.position / status.duration) : 0;
+  $("#bar-fill").style.width = `${(ratio * 100).toFixed(2)}%`;
+  $("#bar-time").textContent = `${formatSeconds(status.position)} / ${formatSeconds(status.duration)}`;
+  $("#toggle").textContent = status.playing ? "пауза" : "играть";
+}
+
+$("#toggle").addEventListener("click", () => {
+  if (!lastStatus) return;
+  invoke("set_playing", { playing: !lastStatus.playing });
+});
+
+$("#bar").addEventListener("click", (event) => {
+  if (!lastStatus || !(lastStatus.duration > 0)) return;
+  const ratio = event.offsetX / event.currentTarget.clientWidth;
+  invoke("seek", { seconds: ratio * lastStatus.duration });
+});
+
+setInterval(async () => {
+  if (!document.body.classList.contains("signed-in")) return;
+  try {
+    renderPlayer(await invoke("playback_status"));
+  } catch (_) {
+    // The player may not have a track yet; the next tick tries again.
+  }
+}, 250);
+
 $("#search-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const text = $("#query").value.trim();
   if (!text) return;
   renderRows($("#results"), [], "ищу…");
   try {
-    renderRows($("#results"), await invoke("search", { text }), "ничего не нашлось", inspectTrack);
+    renderRows($("#results"), await invoke("search", { text }), "ничего не нашлось", playTrack);
   } catch (error) {
     renderRows($("#results"), [], String(error));
   }

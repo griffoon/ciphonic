@@ -22,6 +22,8 @@ aes = "0.8"
 ctr = "0.9"
 base64 = "0.22"
 hex = "0.4"
+cpal = "0.15"
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac", "isomp4", "flac"] }
 
 [profile.release]
 opt-level = 3

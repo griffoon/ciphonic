@@ -146,9 +146,13 @@ fn decrypt_ctr(data: &[u8], hex_key: &str) -> Result<Vec<u8>, String> {
     Ok(out)
 }
 
+/// File extension (and decoder hint) for a Yandex codec name.
+pub fn extension(codec: &str) -> &str {
+    if codec.contains("mp4") { "m4a" } else { codec }
+}
+
 fn cache_path(track_id: &str, codec: &str) -> PathBuf {
-    let ext = if codec.contains("mp4") { "m4a" } else { codec };
-    std::env::temp_dir().join("volna").join(format!("{track_id}.{ext}"))
+    std::env::temp_dir().join("volna").join(format!("{track_id}.{}", extension(codec)))
 }
 
 fn unix_now() -> u64 {

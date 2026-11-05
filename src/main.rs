@@ -2,10 +2,13 @@
 
 mod api;
 mod auth;
+mod player;
 mod stream;
 
+use player::Player;
+
 use auth::Session;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[tauri::command]
 async fn current_session() -> Result<Option<Session>, String> {
@@ -43,6 +46,36 @@ async fn resolve_stream(track_id: String, quality: String) -> Result<stream::Str
     stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await
 }
 
+/// Resolves the stream, loads it into the player and starts it. Returns what is playing.
+#[tauri::command]
+async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result<stream::StreamSource, String> {
+    let token = auth::stored_token()?.ok_or("Нужен вход")?;
+    let source = stream::resolve(&token, &track_id, stream::Quality::parse(&quality)).await?;
+    let input = if source.local {
+        player::Source::File(source.location.clone().into())
+    } else {
+        let data = api::download_bytes(&source.location).await?;
+        player::Source::Bytes { data, ext: stream::extension(&source.codec).to_owned() }
+    };
+    app.state::<Player>().load(input)?;
+    Ok(source)
+}
+
+#[tauri::command]
+fn set_playing(app: AppHandle, playing: bool) {
+    app.state::<Player>().set_playing(playing);
+}
+
+#[tauri::command]
+fn seek(app: AppHandle, seconds: f64) -> Result<(), String> {
+    app.state::<Player>().seek(seconds)
+}
+
+#[tauri::command]
+fn playback_status(app: AppHandle) -> player::Status {
+    app.state::<Player>().status()
+}
+
 #[tauri::command]
 async fn login_with_token(token: String) -> Result<Session, String> {
     auth::login_with_token(token.trim()).await
@@ -58,12 +91,18 @@ async fn start_login(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn logout(app: AppHandle) -> Result<(), String> {
     auth::forget_token()?;
+    app.state::<Player>().stop()?;
     app.emit("session-changed", Option::<Session>::None)
         .map_err(|e| e.to_string())
 }
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            // Opening the audio device can fail (no output); that is a startup error, not a crash later.
+            app.manage(Player::start()?);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             current_session,
             start_login,
@@ -72,7 +111,11 @@ fn main() {
             liked_tracks,
             playlists,
             search,
-            resolve_stream
+            resolve_stream,
+            play_track,
+            set_playing,
+            seek,
+            playback_status
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Волна");
