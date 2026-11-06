@@ -31,6 +31,8 @@ rustfft = "6"
 souvlaki = "0.8"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac", "isomp4", "flac"] }
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-20"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [profile.release]
 opt-level = 3

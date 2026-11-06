@@ -36,6 +36,7 @@
   }
   V.prompt = (title, value = "", okLabel = "Сохранить") => dialog({ title, field: value, okLabel });
   V.confirm = (title, message, okLabel) => dialog({ title, message, okLabel, destructive: true });
+  V.ask = (title, message, okLabel) => dialog({ title, message, okLabel });
 
   // ---------- sharing and clips ----------
   V.trackLink = (track) => (track.albumId

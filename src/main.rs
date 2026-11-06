@@ -12,6 +12,7 @@ mod media;
 mod models;
 mod player;
 mod stream;
+mod vocals;
 mod wave;
 mod ynison;
 
@@ -71,7 +72,8 @@ async fn play_track(app: AppHandle, track_id: String, quality: String) -> Result
         Some(prepared) => (prepared.source, prepared.input),
         None => prepare(&track_id, &quality).await?,
     };
-    app.state::<Player>().load(input)?;
+    app.state::<Player>().load(input.clone())?;
+    vocals::track_changed(&app, input);
     Ok(source)
 }
 
@@ -161,6 +163,7 @@ fn main() {
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
             app.manage(Preloaded::default());
+            app.manage(vocals::Vocals::default());
             app.manage(ynison::Ynison::default());
             analysis::start(app.handle().clone());
             if let Err(e) = media::init(app.handle()) {
@@ -178,6 +181,9 @@ fn main() {
             set_playing,
             set_volume,
             set_eq,
+            vocals::vocals_state,
+            vocals::vocals_install,
+            vocals::set_vocal_cut,
             seek,
             playback_status,
             report_listen,

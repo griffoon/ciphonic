@@ -25,6 +25,7 @@ use symphonia::core::units::Time;
 /// How much decoded audio to keep ahead of the sound card, in seconds.
 const BUFFER_SECONDS: f64 = 0.5;
 
+#[derive(Clone)]
 pub enum Source {
     File(PathBuf),
     Bytes { data: Vec<u8>, ext: String },
@@ -55,6 +56,10 @@ struct Shared {
     ended: AtomicBool,
     out_rate: AtomicU32,
     eq: Mutex<crate::eq::Equalizer>,
+    /// The current track split into vocal and the rest («голос»), when it has been separated.
+    stem: Mutex<Option<Arc<crate::vocals::Stem>>>,
+    /// How much vocal to take out, f32 bits: 0 = original.
+    vocal_cut: AtomicU32,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -111,6 +116,14 @@ impl Player {
     /// Equalizer gains in dB, one per band of `eq::FREQUENCIES`.
     pub fn set_eq(&self, gains: &[f32]) {
         lock(&self.shared.eq).set_gains(gains);
+    }
+
+    pub fn set_stem(&self, stem: Option<Arc<crate::vocals::Stem>>) {
+        *lock(&self.shared.stem) = stem;
+    }
+
+    pub fn set_vocal_cut(&self, cut: f32) {
+        self.shared.vocal_cut.store(cut.clamp(0.0, 1.0).to_bits(), Ordering::Relaxed);
     }
 
     pub fn is_playing(&self) -> bool {
@@ -263,13 +276,26 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
     let playing = shared.playing.load(Ordering::Relaxed);
     // Squared so the slider feels even to the ear.
     let gain = f32::from_bits(shared.volume.load(Ordering::Relaxed)).powi(2);
+    // «Голос»: where the stem is ready, play its `mix − cut · vocal` instead of the decode, at
+    // the same position. try_lock: the audio thread never waits for the separation job.
+    let cut = f32::from_bits(shared.vocal_cut.load(Ordering::Relaxed));
+    let stem = if cut > 0.001 { shared.stem.try_lock().ok().and_then(|s| s.clone()) } else { None };
+    let out_rate = f64::from(shared.out_rate.load(Ordering::Relaxed).max(1));
+    let played = shared.base_millis.load(Ordering::Relaxed) as f64 / 1000.0
+        + shared.frames.load(Ordering::Relaxed) as f64 / out_rate;
+    let step = stem.as_ref().map_or(0.0, |s| f64::from(s.rate) / out_rate);
+    let mut stem_pos = played * stem.as_ref().map_or(0.0, |s| f64::from(s.rate));
+
     let mut buffer = lock(&shared.buffer);
     let mut frames = 0u64;
     for frame in data.chunks_mut(channels) {
         if playing && buffer.len() >= channels {
-            for sample in frame.iter_mut() {
-                *sample = buffer.pop_front().unwrap_or(0.0) * gain;
+            for (c, sample) in frame.iter_mut().enumerate() {
+                let decoded = buffer.pop_front().unwrap_or(0.0);
+                let value = stem.as_ref().and_then(|s| s.sample(c, stem_pos, cut)).unwrap_or(decoded);
+                *sample = value * gain;
             }
+            stem_pos += step;
             frames += 1;
         } else {
             frame.fill(0.0);

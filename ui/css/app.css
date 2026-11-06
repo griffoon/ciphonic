@@ -1780,3 +1780,14 @@ body:has(.dock.with-mini) .wave-vol { display: none; }
 .eq-value { font: 600 11px var(--mono); color: var(--acid); font-variant-numeric: tabular-nums; min-height: 14px; }
 .eq-label { font: 500 11px var(--mono); color: rgba(255, 255, 255, 0.55); }
 .eq-hint { margin-top: 18px; font: 11px var(--mono); color: rgba(255, 255, 255, 0.4); }
+
+/* ---------- «голос» ---------- */
+.vocal { display: none; margin: 10px 6px 0; }
+.vocal.on { display: grid; gap: 6px; animation: drop-in var(--spring-ms) var(--spring); }
+.vocal-row { display: flex; align-items: center; gap: 12px; color: rgba(255, 255, 255, 0.7); }
+.vocal-icon .icon { width: 15px; height: 15px; }
+.vocal-icon.off { opacity: 0.45; }
+.vocal-range { flex: 1; accent-color: var(--acid); cursor: pointer; }
+.vocal-line { display: flex; justify-content: space-between; gap: 12px; font: 500 11px var(--mono); color: rgba(var(--acid-rgb), 0.85); }
+.vocal-status.failed { color: #ff7373; }
+.vocal-speed { font: 10px var(--mono); color: rgba(255, 255, 255, 0.4); min-height: 12px; }
