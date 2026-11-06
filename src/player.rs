@@ -54,6 +54,7 @@ struct Shared {
     /// Set when the decoder ran out of packets; playback stops once the buffer drains.
     ended: AtomicBool,
     out_rate: AtomicU32,
+    eq: Mutex<crate::eq::Equalizer>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -105,6 +106,11 @@ impl Player {
     /// 0…1, applied in the output callback.
     pub fn set_volume(&self, volume: f32) {
         self.shared.volume.store(volume.clamp(0.0, 1.0).to_bits(), Ordering::Relaxed);
+    }
+
+    /// Equalizer gains in dB, one per band of `eq::FREQUENCIES`.
+    pub fn set_eq(&self, gains: &[f32]) {
+        lock(&self.shared.eq).set_gains(gains);
     }
 
     pub fn is_playing(&self) -> bool {
@@ -270,6 +276,11 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
         }
     }
     drop(buffer);
+    {
+        let mut eq = lock(&shared.eq);
+        eq.set_rate(shared.out_rate.load(Ordering::Relaxed));
+        eq.process(data, channels);
+    }
     if frames > 0 {
         shared.frames.fetch_add(frames, Ordering::Relaxed);
     }

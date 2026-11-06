@@ -71,20 +71,19 @@ float fbm(vec2 p) {
 
 // Smoke: a glowing cloud in the cover's colours, domain-warped so it folds like light in fog.
 vec3 smoke(vec2 uv) {
-  vec2 p = (uv - vec2(0.5, 0.38)) * vec2(uRes.x / uRes.y, 1.0) * 1.6;
+  vec2 p = (uv - vec2(0.5, 0.42)) * vec2(uRes.x / uRes.y, 1.0) * 2.4;
   float t = uTime * 0.18 * (1.0 + uMid * 0.8);
   vec2 q = vec2(fbm(p + t), fbm(p - t + 3.1));
   vec2 r = vec2(fbm(p + 2.0 * q + vec2(1.7, 9.2) + t * 1.3),
                 fbm(p + 2.0 * q + vec2(8.3, 2.8) - t));
   float f = fbm(p + 2.6 * r);
   float radius = length(p) * (1.15 - 0.28 * uBass - 0.18 * uKick);
-  float cloud = smoothstep(1.05, 0.05, radius + (f - 0.5) * 0.6);
+  float cloud = smoothstep(0.95, 0.0, radius + (f - 0.5) * 0.3);
   vec3 col = mix(uShade * 0.7, uGlow, clamp(f * f * 2.4, 0.0, 1.0));
   col = mix(col, uCore, clamp(length(q) * 0.85 - 0.15, 0.0, 1.0));
   col += uCore * pow(clamp(f, 0.0, 1.0), 3.0) * (0.6 + 1.4 * uBass);
   float intensity = cloud * (0.45 + 0.9 * f) * (0.75 + 0.45 * uBass + 0.35 * uKick);
-  float streak = pow(abs(sin(p.x * 14.0 + f * 7.0 + t * 5.0)), 48.0) * (uHigh * 0.6 + uHighHit) * cloud * (1.0 - uCalm);
-  return col * intensity + streak * uGlow + uFlash * 0.08 * uCore;
+  return col * intensity;
 }
 
 void main() {
@@ -289,10 +288,19 @@ void main() {
       s.time += dt * (s.playing ? 0.6 + s.bass * 1.4 : 0.15);
     }
 
+    // Size read from a ResizeObserver: reading clientWidth every frame forces a layout and
+    // stutters whatever else animates.
+    let cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    const sizer = new ResizeObserver(([entry]) => {
+      cssW = entry.contentRect.width;
+      cssH = entry.contentRect.height;
+    });
+    sizer.observe(canvas);
+
     function draw() {
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      const w = Math.max(1, Math.round(cssW * dpr));
+      const h = Math.max(1, Math.round(cssH * dpr));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -324,7 +332,8 @@ void main() {
       if (disposed) return;
       requestAnimationFrame(frame);
       // Hidden canvas: no GPU work, and no time jump when it comes back.
-      if (!canvas.classList.contains("on") || canvas.classList.contains("offscreen")) {
+      const covered = canvas.id === "viz" && (document.body.classList.contains("has-sheet") || document.body.classList.contains("has-idle"));
+      if (!canvas.classList.contains("on") || canvas.classList.contains("offscreen") || covered) {
         s.last = now;
         return;
       }
@@ -338,6 +347,7 @@ void main() {
       /// Stops drawing and frees the GPU context (browsers cap how many can live at once).
       dispose() {
         disposed = true;
+        sizer.disconnect();
         gl.getExtension("WEBGL_lose_context")?.loseContext();
       },
       setPlaying(playing) { s.playing = playing; },

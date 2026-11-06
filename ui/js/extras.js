@@ -391,12 +391,14 @@
       document.removeEventListener("keydown", onKey, true);
       appWindow?.setFullscreen(false).catch(V.logError);
       layer.classList.remove("on");
+      document.body.classList.remove("has-idle");
       setTimeout(() => { viz?.dispose(); layer.remove(); }, 400);
     }
 
     render();
     tick();
     document.body.append(layer);
+    document.body.classList.add("has-idle");
     requestAnimationFrame(() => layer.classList.add("on"));
     flashClose();
     appWindow?.setFullscreen(true).catch(V.logError);

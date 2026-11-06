@@ -440,13 +440,14 @@
 
     const lyricsBtn = actionItem("quote", "текст", () => toggleLyrics());
     const queueBtn = actionItem("list", "очередь", () => openQueue());
+    const eqBtn = actionItem("sliders", "экв.", () => V.openEqualizer());
     const sleepBtn = actionItem("moon", "сон", (event) => V.menu.open(event.currentTarget, sleepMenu()));
     controls.addEventListener("wheel", (event) => {
       event.preventDefault();
       V.nudgeVolume(event.deltaY < 0 ? 0.05 : -0.05);
     }, { passive: false });
     const volumeRow = V.volumeControl(".np-vol");
-    const actions = h("div.np-actions", h("div.np-action-row", lyricsBtn, queueBtn, sleepBtn), volumeRow,
+    const actions = h("div.np-actions", h("div.np-action-row", lyricsBtn, queueBtn, eqBtn, sleepBtn), volumeRow,
       h("div.np-more-hint", V.icon("chevronDown")));
 
     const chrome = h("div.np-chrome", scrub, controls, actions);

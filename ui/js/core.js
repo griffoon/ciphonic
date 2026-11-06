@@ -47,6 +47,16 @@ window.V = window.V || {};
     try { fn(data); } catch (error) { console.warn(`[${name}]`, error); }
   });
 
+  /// Subscribes `fn` to `name` for as long as `el` lives: once the element has been on the page
+  /// and is gone again, the listener removes itself (rebuilt screens no longer pile them up).
+  V.onWhileAlive = (el, name, fn) => {
+    let seen = false;
+    const off = V.on(name, (data) => {
+      if (el.isConnected) { seen = true; fn(data); } else if (seen) off();
+    });
+    return off;
+  };
+
   V.logError = (error) => console.warn("[volna]", String(error));
 
   // ---------- storage (per-viewer conveniences only) ----------
@@ -300,7 +310,7 @@ window.V = window.V || {};
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
       const [h, s, v] = rgbToHsv(r, g, b);
-      if (s < 0.28 || v < 0.22) continue;
+      if (s < 0.2 || v < 0.18) continue;
       const bucket = Math.min(buckets - 1, Math.floor(h * buckets));
       const w = s * s * v;
       weight[bucket] += w;
@@ -310,7 +320,7 @@ window.V = window.V || {};
     }
     let best = 0;
     for (let i = 1; i < buckets; i++) if (weight[i] > weight[best]) best = i;
-    if (!(weight[best] > (data.length / 4) * 0.012)) return null;
+    if (!(weight[best] > (data.length / 4) * 0.004)) return null;
     const avg = sums[best].map((c) => c / weight[best]);
     const [h, s, v] = rgbToHsv(...avg);
     return hsvToRgb(h, Math.min(Math.max(s, 0.55), 0.9), Math.max(v, 0.92));

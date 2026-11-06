@@ -31,7 +31,7 @@
       if (mine !== themeToken) return;
       V.coverImage = image;
       V.viz?.setCover(image);
-      const follows = V.store.get("coverAccent", true);
+      const follows = V.store.get("coverAccent2", true);
       setAccent((follows && V.dominantAccent(V.pixels(image, 32, 32))) || ACID);
     } catch (error) {
       V.viz?.setCover(null);
@@ -173,7 +173,7 @@
   V.openSettings = () => {
     const quality = V.store.get("quality", "high");
     const effect = V.vizEffect();
-    const follows = V.store.get("coverAccent", true);
+    const follows = V.store.get("coverAccent2", true);
     const page = h("div.sheet-page.settings",
       h("button.sheet-close", { onclick: () => V.sheet.close() }, V.icon("xmark"), "Закрыть"),
       h("div.large-title", "Настройки"),
@@ -193,10 +193,15 @@
       }))),
       V.terminalLabel("цвет"),
       h("div.choice-list", choice("Цвет из обложки", "акцент берёт самый яркий цвет обложки", follows, () => {
-        V.store.set("coverAccent", !follows);
+        V.store.set("coverAccent2", !follows);
         if (follows) setAccent(ACID); else V.emit("track", P.current);
         V.sheet.close();
         V.openSettings();
+      })),
+      V.terminalLabel("звук"),
+      h("div.choice-list", choice("Эквалайзер", V.eqIsOn() ? "включён: своя кривая" : "выключен, звук как есть", V.eqIsOn(), () => {
+        V.sheet.close();
+        V.openEqualizer();
       })),
       V.terminalLabel("доступность"),
       h("div.choice-list", choice("Без вспышек",

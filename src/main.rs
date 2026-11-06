@@ -4,6 +4,7 @@ mod analysis;
 mod api;
 mod auth;
 mod catalog;
+mod eq;
 mod extras;
 mod feed;
 mod lyrics;
@@ -115,6 +116,11 @@ fn set_playing(app: AppHandle, playing: bool) {
 }
 
 #[tauri::command]
+fn set_eq(app: AppHandle, gains: Vec<f32>) {
+    app.state::<Player>().set_eq(&gains);
+}
+
+#[tauri::command]
 fn set_volume(app: AppHandle, volume: f32) {
     app.state::<Player>().set_volume(volume);
 }
@@ -171,6 +177,7 @@ fn main() {
             preload_track,
             set_playing,
             set_volume,
+            set_eq,
             seek,
             playback_status,
             report_listen,

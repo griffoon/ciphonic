@@ -1747,3 +1747,36 @@ body.has-sheet .root { border-radius: 18px; }
 .idle-card .idle-artist { max-width: 100%; }
 .idle-title { color: rgba(255, 255, 255, 0.92); }
 .idle-date { color: rgba(255, 255, 255, 0.8); }
+
+/* The search field shows focus with its own glow, not a box. */
+.search-input:focus-visible { outline: none; }
+/* One volume on the Wave screen: the toolbar copy steps aside while the mini player shows. */
+body:has(.dock.with-mini) .wave-vol { display: none; }
+
+/* ---------- equalizer ---------- */
+.eq-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.eq-preset {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font: 600 13px var(--sans);
+  color: rgba(255, 255, 255, 0.8);
+  transition: background 0.15s ease, color 0.15s ease, transform var(--snappy-ms) var(--snappy);
+}
+.eq-preset:hover { background: rgba(255, 255, 255, 0.06); }
+.eq-preset:active { transform: scale(0.96); }
+.eq-preset.on { background: var(--acid); border-color: var(--acid); color: #000; }
+.eq-sliders { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.eq-band { display: grid; justify-items: center; gap: 8px; }
+.eq-slot { height: 190px; display: grid; place-items: center; }
+.eq-range {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 180px;
+  width: 22px;
+  accent-color: var(--acid);
+  cursor: pointer;
+}
+.eq-value { font: 600 11px var(--mono); color: var(--acid); font-variant-numeric: tabular-nums; min-height: 14px; }
+.eq-label { font: 500 11px var(--mono); color: rgba(255, 255, 255, 0.55); }
+.eq-hint { margin-top: 18px; font: 11px var(--mono); color: rgba(255, 255, 255, 0.4); }

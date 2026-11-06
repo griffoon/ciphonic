@@ -40,7 +40,6 @@
     V.on("ynison", renderElsewhere);
     V.on("player", renderElsewhere);
     // The screen's name where the Dynamic Island is on the phone.
-    const island = h("div.island", "волна");
 
     // ---- HUD ----
     const hudTag = h("div");
@@ -90,7 +89,7 @@
     const hero = h("div.wave-hero", hud, center, hint);
     const feedHost = h("div.feed-host", feed.el);
     const scroller = h("div.wave-scroll", hero, feedHost);
-    const page = h("div.page.wave-page", canvas, scrim, scroller, toolbar, island, toast);
+    const page = h("div.page.wave-page", canvas, scrim, scroller, toolbar, toast);
 
     let cancelScroll = null;
     function scrollTo(y) {

@@ -25,15 +25,16 @@
   setInterval(() => {
     const live = P.isPlaying && V.levels.playing;
     for (const el of spectra) {
-      if (!el.isConnected) { spectra.delete(el); continue; }
+      if (!el.isConnected) { if (el._seen) spectra.delete(el); continue; }
+      el._seen = true;
       el.textContent = V.spectrumText(V.levels.bands, el._bars, live);
     }
   }, 66);
 
   /// A cover that bumps on each kick (KickBounce).
   V.kickBounce = (el, amount = 0.035) => {
-    V.on("kick", (strength) => {
-      if (!el.isConnected || !P.isPlaying || V.calm()) return;
+    V.onWhileAlive(el, "kick", (strength) => {
+      if (!P.isPlaying || V.calm()) return;
       el.animate(
         [{ transform: `scale(${1 + amount * (0.5 + strength)})` }, { transform: "scale(1)" }],
         { duration: V.springs.bouncy.ms, easing: V.springs.bouncy.easing },
@@ -74,7 +75,7 @@
       e.stopPropagation();
       P.setVolume(Math.round((P.volume + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100);
     }, { passive: false });
-    V.on("volume", () => { if (el.isConnected) render(); });
+    V.onWhileAlive(el, "volume", render);
     render();
     return el;
   };
