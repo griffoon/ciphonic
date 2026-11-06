@@ -331,7 +331,7 @@
     const appWindow = window.__TAURI__?.window?.getCurrentWindow?.();
     const canvas = h("canvas.viz.on");
     const viz = window.Visualizer ? window.Visualizer.create(canvas) : null;
-    viz?.setEffect(V.store.get("visualizerEffect", 1));
+    viz?.setEffect(V.vizEffect());
     viz?.setCalm(V.calm());
     viz?.setCover(V.coverImage || null);
     viz?.setAccent(V.accentRGB);
@@ -346,11 +346,12 @@
     const layer = h("div.idle", canvas,
       // Scrims under the text and the clock so they read over the brightest glyphs.
       h("div.idle-scrim"),
-      h("div.idle-center", artist, title, h("div.idle-controls",
+      h("div.idle-center", h("div.idle-card", artist, title), h("div.idle-controls",
         h("button.idle-btn", { onclick: () => P.previous() }, V.glyph("previous", 16)),
         playBtn,
-        h("button.idle-btn", { onclick: () => P.next() }, V.glyph("next", 16)))),
-      h("div.idle-clock", time, date),
+        h("button.idle-btn", { onclick: () => P.next() }, V.glyph("next", 16))),
+        V.volumeControl(".idle-volume")),
+      h("div.idle-clock", h("div.idle-clock-card", time, date)),
       closeBtn);
 
     function render() {

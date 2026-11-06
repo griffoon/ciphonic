@@ -13,7 +13,7 @@
 
     const canvas = h("canvas.viz", { id: "viz" });
     V.viz = window.Visualizer ? window.Visualizer.create(canvas) : null;
-    V.viz?.setEffect(V.store.get("visualizerEffect", 1));
+    V.viz?.setEffect(V.vizEffect());
     V.viz?.setCalm(V.calm());
     V.on("calm", (on) => V.viz?.setCalm(on));
     const scrim = h("div.wave-scrim");
@@ -26,7 +26,7 @@
     const tuneBtn = h("button.glass-round", { title: "Настроить волну", onclick: () => V.openWaveSettings() }, V.icon("sliders"));
     const idleBtn = h("button.glass-round", { title: "Режим покоя", onclick: () => V.openIdle() }, V.icon("expand"));
     const devicesBtn = h("button.glass-round", { title: "Устройства", onclick: () => V.route.destination("devices", {}) }, V.icon("speakerDevice"));
-    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn, tuneBtn), h("div.wave-toolbar-right", idleBtn, devicesBtn, settingsBtn));
+    const toolbar = h("div.wave-toolbar", h("div.wave-toolbar-left", myWaveBtn, tuneBtn), h("div.wave-toolbar-right", V.volumeControl(".glass.wave-vol"), idleBtn, devicesBtn, settingsBtn));
     // «на пк: трек» when another device plays and this one doesn't.
     const elsewhere = h("button.capsule-device", { onclick: () => V.route.destination("devices", {}) });
     function renderElsewhere() {

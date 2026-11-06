@@ -9,7 +9,7 @@
   // ---------- cover deck (CoverDeck) ----------
   /// The cover as a card: it follows the pointer with a slight tilt, the neighbour slides in
   /// from the side, and letting go past the threshold switches tracks.
-  V.coverDeck = function coverDeck({ size = null, onTap = null } = {}) {
+  V.coverDeck = function coverDeck({ size = null, onTap = null, kick = 0.035 } = {}) {
     const GAP = 28, THRESHOLD = 0.28;
     const deck = h("div.deck");
     if (size) deck.style.height = `${size}px`;
@@ -30,7 +30,7 @@
       peek = null;
       stage.replaceChildren();
       card = makeCard(P.current, null);
-      V.kickBounce(card.firstChild);
+      if (kick) V.kickBounce(card.firstChild, kick);
       stage.append(card);
       deck.classList.toggle("paused", !P.isPlaying);
     }
@@ -147,16 +147,14 @@
   };
 
   // ---------- mini player ----------
-  const mini = h("div.mini", { onclick: (e) => { if (!e.target.closest("button, input, .mini-volume-box")) V.openPlayer(); } });
+  const mini = h("div.mini", { onclick: (e) => { if (!e.target.closest("button, input, .vol")) V.openPlayer(); } });
   const miniCover = h("div.mini-cover");
   const miniTitle = h("div.mini-title");
   const miniArtist = h("div.mini-artist");
   const miniPlay = h("button.mini-btn", { title: "Играть/пауза", onclick: () => P.togglePlay() });
   const miniNext = h("button.mini-btn", { title: "Дальше", onclick: () => P.next() }, V.glyph("next", 14));
   // Volume right in the mini player: the slider, or the mouse wheel anywhere over the bar.
-  const miniVolume = h("input.mini-volume", { type: "range", min: "0", max: "1", step: "0.01", title: "Громкость" });
-  miniVolume.addEventListener("input", () => P.setVolume(Number(miniVolume.value)));
-  const miniVolumeBox = h("div.mini-volume-box", V.icon("speaker"), miniVolume);
+  const miniVolumeBox = V.volumeControl(".mini-vol");
   mini.append(miniCover, h("div.mini-text", miniTitle, miniArtist), V.spectrum(6, "mini-spectrum"), miniVolumeBox, miniPlay, miniNext);
   mini.addEventListener("wheel", (event) => {
     event.preventDefault();
@@ -171,7 +169,7 @@
   V.mini = mini;
   // Swipe up on the mini player opens the full player, like iOS.
   let miniStartY = null;
-  mini.addEventListener("pointerdown", (e) => { miniStartY = e.target.closest("input") ? null : e.clientY; });
+  mini.addEventListener("pointerdown", (e) => { miniStartY = e.target.closest("input, .vol") ? null : e.clientY; });
   mini.addEventListener("pointerup", (e) => {
     if (miniStartY !== null && miniStartY - e.clientY > 24) V.openPlayer();
     miniStartY = null;
@@ -185,7 +183,6 @@
     }
     V.scramble(miniTitle, track ? V.fullTitle(track) : "Ничего не играет", 0.4);
     miniArtist.textContent = track?.artists || "";
-    if (document.activeElement !== miniVolume) miniVolume.value = String(P.volume);
     const glyph = P.isLoading ? h("span.spinner.small") : V.glyph(P.isPlaying ? "pause" : "play", 16);
     miniPlay.replaceChildren(glyph);
   }
@@ -417,7 +414,7 @@
     const hudLabel = h("span.np-hud-label");
     const hud = h("div.np-hud", hudLabel, h("span.np-hud-space"), V.spectrum(6, "np-spectrum"));
 
-    const deck = V.coverDeck({});
+    const deck = V.coverDeck({ kick: 0 });
     const deckWrap = h("div.np-deck", deck);
 
     const title = h("button.np-title", { onclick: () => P.current?.albumId && V.route.destination("album", { id: P.current.albumId }) });
@@ -443,19 +440,13 @@
 
     const lyricsBtn = actionItem("quote", "текст", () => toggleLyrics());
     const queueBtn = actionItem("list", "очередь", () => openQueue());
-    const volumeBtn = actionItem("speaker", "громк.", () => {
-      volumeRow.classList.toggle("on");
-      volumeBtn.classList.toggle("active", volumeRow.classList.contains("on"));
-    });
     const sleepBtn = actionItem("moon", "сон", (event) => V.menu.open(event.currentTarget, sleepMenu()));
-    const volumeInput = h("input.volume", { type: "range", min: "0", max: "1", step: "0.01", value: String(P.volume) });
     controls.addEventListener("wheel", (event) => {
       event.preventDefault();
       V.nudgeVolume(event.deltaY < 0 ? 0.05 : -0.05);
     }, { passive: false });
-    volumeInput.addEventListener("input", () => P.setVolume(Number(volumeInput.value)));
-    const volumeRow = h("div.np-volume", V.icon("speakerLow"), volumeInput, V.icon("speaker"));
-    const actions = h("div.np-actions", h("div.np-action-row", lyricsBtn, queueBtn, volumeBtn, sleepBtn), volumeRow,
+    const volumeRow = V.volumeControl(".np-vol");
+    const actions = h("div.np-actions", h("div.np-action-row", lyricsBtn, queueBtn, sleepBtn), volumeRow,
       h("div.np-more-hint", V.icon("chevronDown")));
 
     const chrome = h("div.np-chrome", scrub, controls, actions);
@@ -612,7 +603,6 @@
       repeat.classList.toggle("active", P.repeatMode !== "off");
       sleepBtn.classList.toggle("active", Boolean(P.sleepTimer));
       sleepBtn.querySelector(".icon").innerHTML = V.icons[P.sleepTimer ? "moonFill" : "moon"];
-      volumeInput.value = String(P.volume);
       if (track?.id !== root._track) {
         root._track = track?.id;
         renderTrack();

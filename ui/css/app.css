@@ -899,12 +899,12 @@ body.has-sheet .root { border-radius: 18px; }
   inset: 0;
   margin: 0;
   font: 700 calc(min(640px, 100vw) / 46 / 0.6) / 1.2 var(--mono);
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.11);
   white-space: pre;
   overflow: hidden;
   transition: color 0.4s ease;
 }
-.np.lyrics-on .ascii-art { color: rgba(255, 255, 255, 0.08); }
+.np.lyrics-on .ascii-art { color: rgba(255, 255, 255, 0.05); }
 .np-fade { position: absolute; inset: 0; background: linear-gradient(transparent 50%, rgba(5, 5, 6, 0.9)); }
 .np-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; }
 .np-page {
@@ -1050,8 +1050,7 @@ body.has-sheet .root { border-radius: 18px; }
 .np-action .icon { width: 21px; height: 21px; }
 .np-action.active { color: var(--acid); }
 .np-action:active { transform: scale(0.92); }
-.np-volume { display: none; align-items: center; gap: 12px; padding: 0 6px; color: rgba(255, 255, 255, 0.6); }
-.np-volume.on { display: flex; animation: drop-in var(--spring-ms) var(--spring); }
+.vol.np-vol { margin: 4px 6px 0; }
 @keyframes drop-in { from { opacity: 0; transform: translateY(-8px); } }
 .volume { flex: 1; accent-color: var(--acid); height: 34px; }
 .np-more-hint { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.35); }
@@ -1706,3 +1705,45 @@ body.has-sheet .root { border-radius: 18px; }
   user-select: text;
 }
 .login-error { min-height: 1.2em; font: 13px var(--sans); color: #ffb4b4; text-align: center; }
+
+/* ---------- volume (hover + wheel, drag, click to mute) ---------- */
+.vol { display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.75); user-select: none; }
+.vol-icon { width: 26px; height: 26px; display: grid; place-items: center; flex: none; color: inherit; }
+.vol-icon .icon { width: 16px; height: 16px; }
+.vol-bar { position: relative; flex: 1; min-width: 60px; height: 18px; cursor: pointer; touch-action: none; }
+.vol-track, .vol-fill { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; }
+.vol-track { right: 0; background: rgba(255, 255, 255, 0.18); }
+.vol-fill { background: var(--acid); transition: width 0.08s linear; }
+.vol:hover .vol-track, .vol:hover .vol-fill { height: 5px; margin-top: -2.5px; }
+.vol-value { font: 500 11px var(--mono); min-width: 22px; text-align: right; color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; }
+.vol.muted .vol-icon { color: rgba(255, 255, 255, 0.4); }
+.vol.mini-vol .vol-bar { min-width: 0; width: 72px; flex: none; }
+.vol.mini-vol .vol-value { display: none; }
+.vol.wave-vol { height: 40px; padding: 0 12px 0 8px; border-radius: 999px; }
+.vol.wave-vol .vol-bar { flex: none; width: 90px; }
+.vol.idle-volume {
+  pointer-events: auto;
+  width: 240px;
+  padding: 4px 14px 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Idle mode: text sits on its own dark glass, whatever the background does. */
+.idle-card, .idle-clock-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 28px 18px;
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(22px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: min(720px, 90vw);
+}
+.idle-clock-card { gap: 2px; padding: 8px 26px 10px; }
+.idle-card .idle-artist { max-width: 100%; }
+.idle-title { color: rgba(255, 255, 255, 0.92); }
+.idle-date { color: rgba(255, 255, 255, 0.8); }

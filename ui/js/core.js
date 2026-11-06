@@ -50,6 +50,12 @@ window.V = window.V || {};
   V.logError = (error) => console.warn("[volna]", String(error));
 
   // ---------- storage (per-viewer conveniences only) ----------
+  /// The chosen wave background, clamped to the ones the picker still offers.
+  V.vizEffect = () => {
+    const index = Number(V.store.get("visualizerEffect", 1));
+    return index >= 0 && index < (window.Visualizer?.effects.length ?? 4) ? index : 1;
+  };
+
   V.store = {
     get(key, fallback) {
       try {

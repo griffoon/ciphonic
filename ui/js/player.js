@@ -377,6 +377,7 @@
   P.setVolume = (volume) => {
     P.volume = Math.min(Math.max(volume, 0), 1);
     V.store.set("volume", P.volume);
+    V.emit("volume", P.volume);
     V.invoke("set_volume", { volume: P.volume }).catch(V.logError);
     changed();
   };

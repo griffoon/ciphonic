@@ -172,7 +172,7 @@
   // ---------- settings ----------
   V.openSettings = () => {
     const quality = V.store.get("quality", "high");
-    const effect = V.store.get("visualizerEffect", 1);
+    const effect = V.vizEffect();
     const follows = V.store.get("coverAccent", true);
     const page = h("div.sheet-page.settings",
       h("button.sheet-close", { onclick: () => V.sheet.close() }, V.icon("xmark"), "Закрыть"),

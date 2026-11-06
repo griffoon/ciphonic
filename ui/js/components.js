@@ -31,14 +31,51 @@
   }, 66);
 
   /// A cover that bumps on each kick (KickBounce).
-  V.kickBounce = (el) => {
+  V.kickBounce = (el, amount = 0.035) => {
     V.on("kick", (strength) => {
       if (!el.isConnected || !P.isPlaying || V.calm()) return;
       el.animate(
-        [{ transform: `scale(${1 + 0.035 * (0.5 + strength)})` }, { transform: "scale(1)" }],
+        [{ transform: `scale(${1 + amount * (0.5 + strength)})` }, { transform: "scale(1)" }],
         { duration: V.springs.bouncy.ms, easing: V.springs.bouncy.easing },
       );
     });
+    return el;
+  };
+
+  /// Volume the way desktop players do it: hover and turn the wheel, drag the bar,
+  /// click the speaker to mute. Every copy follows the same `volume` event.
+  let unmutedVolume = 1;
+  V.volumeControl = (extraClass = "") => {
+    const icon = h("button.vol-icon", { title: "Без звука" });
+    const fill = h("div.vol-fill");
+    const bar = h("div.vol-bar", h("div.vol-track"), fill);
+    const value = h("span.vol-value");
+    const el = h(`div.vol${extraClass}`, { title: "Громкость: наведи и крути колесо" }, icon, bar, value);
+    const render = () => {
+      const v = P.volume;
+      fill.style.width = `${Math.round(v * 100)}%`;
+      value.textContent = `${Math.round(v * 100)}`;
+      icon.replaceChildren(V.icon(v === 0 ? "speakerLow" : "speaker"));
+      el.classList.toggle("muted", v === 0);
+    };
+    icon.addEventListener("click", () => {
+      if (P.volume > 0) { unmutedVolume = P.volume; P.setVolume(0); } else P.setVolume(unmutedVolume || 0.5);
+    });
+    const pick = (e) => {
+      const rect = bar.getBoundingClientRect();
+      P.setVolume(Math.round(Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1) * 100) / 100);
+    };
+    bar.addEventListener("pointerdown", (e) => { e.stopPropagation(); bar.setPointerCapture(e.pointerId); pick(e); });
+    bar.addEventListener("pointermove", (e) => { if (bar.hasPointerCapture(e.pointerId)) pick(e); });
+    el.addEventListener("pointerdown", (e) => e.stopPropagation());
+    el.addEventListener("click", (e) => e.stopPropagation());
+    el.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      P.setVolume(Math.round((P.volume + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100);
+    }, { passive: false });
+    V.on("volume", () => { if (el.isConnected) render(); });
+    render();
     return el;
   };
 
