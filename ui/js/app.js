@@ -67,7 +67,7 @@
       h("div.aurora", h("i"), h("i"), h("i"), h("i")),
       h("div.login-column",
         h("div.login-spacer"),
-        h("div.login-icon", V.icon("waveform")),
+        h("img.login-logo", { src: "img/logo.png", alt: "" }),
         h("div.login-name", "C1PH0N1C"),
         h("div.login-sub", "Только музыка. Ничего лишнего."),
         h("div.login-spacer"),
@@ -203,6 +203,24 @@
         V.sheet.close();
         V.openEqualizer();
       })),
+      V.terminalLabel("приложение"),
+      h("div.choice-list",
+        choice("Закрывать в трей", "крестик прячет окно, музыка играет дальше; значок у часов возвращает его", V.closeToTray(), () => {
+          V.setCloseToTray(!V.closeToTray());
+          V.sheet.close();
+          V.openSettings();
+        }),
+        choice("Проверять обновления", "при запуске и раз в несколько часов", V.autoUpdateCheck(), () => {
+          V.store.set("autoUpdateCheck", !V.autoUpdateCheck());
+          V.sheet.close();
+          V.openSettings();
+        }),
+        h("button.choice", { onclick: () => V.checkForUpdate(true) },
+          h("div", h("div.choice-title", "Проверить сейчас"), h("div.choice-sub", `> версия ${V.appVersion || "?"}`)),
+          h("span.choice-check", "↻")),
+        h("button.choice", { onclick: () => { V.sheet.close(); V.openWhatsNew(); } },
+          h("div", h("div.choice-title", "Что нового"), h("div.choice-sub", "изменения этой версии")),
+          h("span.choice-check", "→"))),
       V.terminalLabel("доступность"),
       h("div.choice-list", choice("Без вспышек",
         "визуализатор не мигает и не дёргается на басу, кнопки не пульсируют — для тех, кому вредны вспышки",
@@ -211,7 +229,8 @@
           V.sheet.close();
           V.openSettings();
         })),
-      h("button.logout", { onclick: async () => { V.sheet.closeAll(); await V.invoke("logout"); } }, "Выйти из аккаунта"));
+      h("button.logout", { onclick: async () => { V.sheet.closeAll(); await V.invoke("logout"); } }, "Выйти из аккаунта"),
+      h("button.logout.quit", { onclick: () => V.invoke("quit_app") }, "Закрыть C1PH0N1C совсем"));
     V.sheet.open(page);
   };
 

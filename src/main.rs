@@ -13,6 +13,8 @@ mod models;
 mod player;
 mod reverb;
 mod stream;
+mod tray;
+mod update;
 mod vocals;
 mod wave;
 mod ynison;
@@ -161,15 +163,34 @@ async fn start_login(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn quit_app(app: AppHandle) {
+    tray::quit(&app);
+}
+
+#[tauri::command]
 fn logout(app: AppHandle) -> Result<(), String> {
     auth::forget_token()?;
     app.state::<Player>().stop()?;
     app.emit("session-changed", Option::<Session>::None).map_err(|e| e.to_string())
 }
 
+/// Flag the updater passes to the new copy: wait for the old one to quit first, or the
+/// single-instance check would hand over to it and close.
+const AFTER_UPDATE: &str = "--after-update";
+
 fn main() {
+    if std::env::args().any(|a| a == AFTER_UPDATE) {
+        std::thread::sleep(std::time::Duration::from_millis(1800));
+    }
     tauri::Builder::default()
+        // A second start (shortcut, double click) shows the running copy instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_window(app)))
+        .on_window_event(tray::on_window_event)
         .setup(|app| {
+            update::cleanup();
+            if let Err(e) = tray::init(app.handle()) {
+                eprintln!("[tray] {e}");
+            }
             // Opening the audio device can fail (no output); that is a startup error, not a crash later.
             app.manage(Player::start()?);
             app.manage(wave::Wave::default());
@@ -239,7 +260,13 @@ fn main() {
             wave::wave_last,
             wave::wave_settings,
             lyrics::get_lyrics,
-            media::media_update
+            media::media_update,
+            tray::set_close_to_tray,
+            tray::set_tray_track,
+            update::check_update,
+            update::install_update,
+            update::whats_new,
+            quit_app
         ])
         .run(tauri::generate_context!())
         .expect("failed to run C1PH0N1C");

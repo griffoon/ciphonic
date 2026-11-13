@@ -1797,3 +1797,37 @@ body:has(.dock.with-mini) .wave-vol { display: none; }
 .fx-label { width: 72px; font: 500 12px var(--mono); color: rgba(255, 255, 255, 0.6); }
 .fx-range { flex: 1; accent-color: var(--acid); cursor: pointer; }
 .fx-value { width: 46px; text-align: right; font: 600 12px var(--mono); color: var(--acid); font-variant-numeric: tabular-nums; }
+
+/* ---------- update line ---------- */
+.update-bar {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px 8px 16px;
+  border-radius: 999px;
+  background: rgba(5, 5, 6, 0.88);
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 0 0 1px rgba(var(--acid-rgb), 0.45), 0 10px 40px rgba(0, 0, 0, 0.5);
+  font: 500 12px var(--mono);
+  transform: translate(-50%, -140%);
+  transition: transform var(--spring-ms) var(--spring);
+}
+.update-bar.on { transform: translate(-50%, 0); }
+.update-text { color: rgba(255, 255, 255, 0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.update-go { padding: 6px 14px; border-radius: 999px; background: var(--acid); color: #000; font: 700 12px var(--sans); }
+.update-go:disabled { opacity: 0.5; }
+.update-link { color: rgba(255, 255, 255, 0.6); font: 500 12px var(--mono); white-space: nowrap; }
+.update-link:hover { color: #fff; }
+.whats-new { margin: 6px 0 0; padding: 0 0 0 4px; list-style: none; display: grid; gap: 10px; }
+.whats-new li { position: relative; padding-left: 20px; font-size: 15px; line-height: 1.5; color: rgba(255, 255, 255, 0.86); }
+.whats-new li::before { content: ">"; position: absolute; left: 0; font: 600 13px/1.7 var(--mono); color: var(--acid); }
+.whats-new-empty { font: 12px var(--mono); color: rgba(255, 255, 255, 0.5); }
+.logout.quit { margin-top: 8px; color: rgba(255, 255, 255, 0.55); }
+@media (max-width: 640px) { .update-link { display: none; } }
+
+.login-logo { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 0 50px rgba(var(--acid-rgb), 0.3); }
