@@ -242,5 +242,5 @@ fn main() {
             media::media_update
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run Волна");
+        .expect("failed to run C1PH0N1C");
 }

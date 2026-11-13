@@ -1,12 +1,12 @@
-# Волна для Windows
+# C1PH0N1C
 
-Десктопный клиент Яндекс Музыки: Моя волна с обучением, коллекция, поиск, текст песен
-с подсветкой строки и ASCII-визуализатор за экраном волны. Порт iOS-приложения «Волна»
-(`ymusic-ios`) на Rust.
+Десктопный клиент Яндекс Музыки для Windows (раньше «Волна»): Моя волна, коллекция, поиск,
+текст как в караоке, отделение голоса, найткор и slowed + reverb, ASCII-визуализатор из 0 и 1.
+Порт iOS-приложения на Rust. Сайт: https://griffoon.github.io/ciphonic/
 
 ## Запуск
 
-Скачай `Volna-…-windows-x64.zip` со страницы релизов, распакуй и запусти `volna.exe`.
+Скачай `C1PH0N1C-…-windows-x64.zip` со страницы релизов, распакуй и запусти `ciphonic.exe`.
 `WebView2Loader.dll` должен лежать в той же папке. Интерфейс вшит в exe.
 
 - Нужна Windows 10 или 11 (64-бит) и WebView2 Runtime. В Windows 11 он уже есть,
@@ -25,7 +25,7 @@
 
 ```powershell
 $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
-cargo build --release   # target\release\volna.exe
+cargo build --release   # target\release\ciphonic.exe
 cargo run               # отладочная сборка с консолью для логов
 cargo test              # криптография, LRC, волна, анализатор
 ```

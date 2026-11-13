@@ -154,7 +154,7 @@
     h("button.btn-acid", { onclick: play }, V.glyph("play", 13), "СЛУШАТЬ"),
     h("button.btn-outline", { onclick: shuffle }, V.icon("shuffle"), "ВПЕРЕМЕШКУ"));
 
-  /// Cover on the left, type tag and Dela title on the right, actions below (CollectionHeader).
+  /// Cover on the left, type tag and display title on the right, actions below (CollectionHeader).
   V.collectionHeader = ({ kind, title, subtitle, cover, play, shuffle }) => h("div.c-header",
     h("div.c-top",
       V.cover(cover, 400, "c-cover"),

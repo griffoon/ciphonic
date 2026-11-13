@@ -1,7 +1,7 @@
 [package]
-name = "volna"
+name = "ciphonic"
 version = "0.2.3"
-description = "Волна — Yandex Music client for Windows"
+description = "C1PH0N1C — Yandex Music client for Windows"
 authors = ["griffoonchik"]
 license = "MIT"
 edition = "2021"

@@ -1,8 +1,8 @@
-/* Волна: terminal look, one acid accent (or the cover's colour), Dela Gothic One for display. */
+/* C1PH0N1C: terminal look, one acid accent (or the cover's colour), Unbounded ExtraBold for display. */
 
 @font-face {
-  font-family: "Dela Gothic One";
-  src: url("../fonts/DelaGothicOne-Regular.ttf") format("truetype");
+  font-family: "Unbounded";
+  src: url("../fonts/Unbounded-ExtraBold.ttf") format("truetype");
   font-display: block;
 }
 
@@ -25,7 +25,7 @@
   --line: rgba(255, 255, 255, 0.08);
   --mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, monospace;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --display: "Dela Gothic One", var(--sans);
+  --display: "Unbounded", var(--sans);
   --sheet-radius: 28px;
   transition: --acid 0.6s ease-in-out;
   color-scheme: dark;

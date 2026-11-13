@@ -26,8 +26,8 @@ pub fn init(app: &AppHandle) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("нет главного окна")?;
     let hwnd = window.hwnd().map_err(|e| e.to_string())?;
     let config = PlatformConfig {
-        dbus_name: "volna",
-        display_name: "Волна",
+        dbus_name: "ciphonic",
+        display_name: "C1PH0N1C",
         hwnd: Some(hwnd.0 as *mut std::ffi::c_void),
     };
     let mut controls = MediaControls::new(config).map_err(|e| format!("{e:?}"))?;

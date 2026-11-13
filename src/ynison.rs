@@ -22,7 +22,7 @@ use crate::auth;
 
 const REDIRECT_URL: &str = "wss://ynison.music.yandex.ru/redirector.YnisonRedirectService/GetRedirectToYnison";
 const STATE_PATH: &str = "ynison_state.YnisonStateService/PutYnisonState";
-const DEVICE_TITLE: &str = "Волна (Windows)";
+const DEVICE_TITLE: &str = "C1PH0N1C (Windows)";
 const PING_EVERY: Duration = Duration::from_secs(20);
 const RETRY_AFTER: Duration = Duration::from_secs(10);
 
@@ -426,7 +426,7 @@ mod tests {
     fn frame_fills_devices_queue_and_status_skipping_ourselves() {
         let frame = json!({
             "devices": [
-                { "info": { "device_id": "me", "title": "Волна" } },
+                { "info": { "device_id": "me", "title": "C1PH0N1C" } },
                 { "info": { "deviceId": "pc", "title": "ПК", "type": "WEB", "appName": "yandex-music" }, "isOffline": false }
             ],
             "activeDeviceIdOptional": "pc",

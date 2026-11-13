@@ -248,7 +248,7 @@
   }
 
   async function renderPoster(track) {
-    await document.fonts.load('84px "Dela Gothic One"');
+    await document.fonts.load('84px "Unbounded"');
     const canvas = document.createElement("canvas");
     canvas.width = POSTER_W;
     canvas.height = POSTER_H;
@@ -260,7 +260,7 @@
 
     ctx.fillStyle = accent;
     ctx.font = "bold 30px ui-monospace, Consolas, monospace";
-    ctx.fillText("> volna | now playing", PAD, PAD);
+    ctx.fillText("> c1ph0n1c | now playing", PAD, PAD);
 
     const side = 600, x = (POSTER_W - side) / 2, y = PAD + 30 + 44;
     try {
@@ -279,8 +279,8 @@
 
     let ty = y + side + 56;
     ctx.fillStyle = "#fff";
-    const artist = fitText(ctx, track.artists, '"Dela Gothic One"', 84, 40, POSTER_W - PAD * 2, 2);
-    ctx.font = `${artist.size}px "Dela Gothic One"`;
+    const artist = fitText(ctx, track.artists, '"Unbounded"', 84, 40, POSTER_W - PAD * 2, 2);
+    ctx.font = `${artist.size}px "Unbounded"`;
     for (const line of artist.lines) { ctx.fillText(line, PAD, ty); ty += artist.size * 1.12; }
 
     ctx.fillStyle = "rgba(255,255,255,.7)";
@@ -320,7 +320,7 @@
       }
     }, "image/png");
     saveBtn.onclick = () => {
-      const name = `volna-${(track.artists + " " + track.title).replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.png`;
+      const name = `c1ph0n1c-${(track.artists + " " + track.title).replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.png`;
       h("a", { href: url, download: name }).click();
     };
   };

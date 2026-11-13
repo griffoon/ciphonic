@@ -20,7 +20,7 @@ const LYRICS_KEY: &[u8] = b"p93jhgh689SBReK6ghtw62";
 /// A search hit counts only if its length is this close to ours (remixes have other timing).
 const DURATION_TOLERANCE: f64 = 4.0;
 /// LRCLIB asks clients to identify themselves.
-const LRCLIB_AGENT: &str = "Volna/0.1 (desktop)";
+const LRCLIB_AGENT: &str = "C1PH0N1C/0.3 (desktop)";
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct LyricLine {

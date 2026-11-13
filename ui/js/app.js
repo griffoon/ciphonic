@@ -68,7 +68,7 @@
       h("div.login-column",
         h("div.login-spacer"),
         h("div.login-icon", V.icon("waveform")),
-        h("div.login-name", "Волна"),
+        h("div.login-name", "C1PH0N1C"),
         h("div.login-sub", "Только музыка. Ничего лишнего."),
         h("div.login-spacer"),
         button,

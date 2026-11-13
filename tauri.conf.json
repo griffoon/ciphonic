@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Волна",
+  "productName": "C1PH0N1C",
   "version": "0.2.3",
   "identifier": "dev.volna.desktop",
   "build": {
@@ -9,7 +9,7 @@
   "app": {
     "windows": [
       {
-        "title": "Волна",
+        "title": "C1PH0N1C",
         "width": 800,
         "height": 720,
         "minWidth": 800,
