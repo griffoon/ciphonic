@@ -29,9 +29,14 @@
 
   // ---------- «Что нового» after an update ----------
   function notesList(text) {
-    const items = String(text || "").split("\n")
-      .filter((line) => line.trim().startsWith("- "))
-      .map((line) => h("li", line.trim().slice(2)));
+    // A bullet may wrap onto indented lines: glue them back to it.
+    const bullets = [];
+    for (const raw of String(text || "").split("\n")) {
+      const line = raw.trim();
+      if (line.startsWith("- ")) bullets.push(line.slice(2));
+      else if (line && !line.startsWith("#") && bullets.length && /^\s/.test(raw)) bullets[bullets.length - 1] += ` ${line}`;
+    }
+    const items = bullets.map((b) => h("li", b));
     return items.length ? h("ul.whats-new", ...items) : h("div.whats-new-empty", "> без подробностей");
   }
 
