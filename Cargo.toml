@@ -1,6 +1,6 @@
 [package]
 name = "ciphonic"
-version = "0.3.0"
+version = "0.3.1"
 description = "C1PH0N1C — Yandex Music client for Windows"
 authors = ["griffoonchik"]
 license = "MIT"
