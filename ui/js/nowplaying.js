@@ -440,7 +440,7 @@
 
     const lyricsBtn = actionItem("quote", "текст", () => toggleLyrics());
     const queueBtn = actionItem("list", "очередь", () => openQueue());
-    const eqBtn = actionItem("sliders", "экв.", () => V.openEqualizer());
+    const eqBtn = actionItem("sliders", "звук", () => V.openEqualizer());
     const vocalRow = V.vocalControl();
     const vocalBtn = actionItem("mic", "голос", () => {
       vocalRow.classList.toggle("on");

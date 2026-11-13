@@ -11,6 +11,7 @@ mod lyrics;
 mod media;
 mod models;
 mod player;
+mod reverb;
 mod stream;
 mod vocals;
 mod wave;
@@ -118,6 +119,16 @@ fn set_playing(app: AppHandle, playing: bool) {
 }
 
 #[tauri::command]
+fn set_speed(app: AppHandle, speed: f32) -> Result<(), String> {
+    app.state::<Player>().set_speed(speed)
+}
+
+#[tauri::command]
+fn set_reverb(app: AppHandle, amount: f32) {
+    app.state::<Player>().set_reverb(amount);
+}
+
+#[tauri::command]
 fn set_eq(app: AppHandle, gains: Vec<f32>) {
     app.state::<Player>().set_eq(&gains);
 }
@@ -181,6 +192,8 @@ fn main() {
             set_playing,
             set_volume,
             set_eq,
+            set_speed,
+            set_reverb,
             vocals::vocals_state,
             vocals::vocals_install,
             vocals::set_vocal_cut,

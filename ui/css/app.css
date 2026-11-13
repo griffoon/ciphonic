@@ -1791,3 +1791,9 @@ body:has(.dock.with-mini) .wave-vol { display: none; }
 .vocal-line { display: flex; justify-content: space-between; gap: 12px; font: 500 11px var(--mono); color: rgba(var(--acid-rgb), 0.85); }
 .vocal-status.failed { color: #ff7373; }
 .vocal-speed { font: 10px var(--mono); color: rgba(255, 255, 255, 0.4); min-height: 12px; }
+
+/* ---------- speed and hall ---------- */
+.fx-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.fx-label { width: 72px; font: 500 12px var(--mono); color: rgba(255, 255, 255, 0.6); }
+.fx-range { flex: 1; accent-color: var(--acid); cursor: pointer; }
+.fx-value { width: 46px; text-align: right; font: 600 12px var(--mono); color: var(--acid); font-variant-numeric: tabular-nums; }

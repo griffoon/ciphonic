@@ -19,7 +19,8 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Key the desktop app signs get-file-info with; only accepted together with its client header.
 const FILE_INFO_KEY: &[u8] = b"kzqU4XhfCaY6B6JTHODeq5";
-const CODECS: &str = "flac,flac-mp4,aac-mp4,he-aac-mp4,aac,he-aac,mp3";
+// HE-AAC goes last: symphonia decodes AAC without SBR, so HE-AAC would sound muffled.
+const CODECS: &str = "flac,flac-mp4,aac-mp4,aac,mp3,he-aac-mp4,he-aac";
 const MP3_SALT: &str = "XGRlBW9FXlekgbPrRHuSiA";
 const NO_STREAM: &str = "Трек недоступен для прослушивания";
 const BAD_RESPONSE: &str = "Непонятный ответ сервера";

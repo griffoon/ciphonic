@@ -199,7 +199,7 @@
         V.openSettings();
       })),
       V.terminalLabel("звук"),
-      h("div.choice-list", choice("Эквалайзер", V.eqIsOn() ? "включён: своя кривая" : "выключен, звук как есть", V.eqIsOn(), () => {
+      h("div.choice-list", choice("Эквалайзер, скорость и зал", V.eqIsOn() || V.soundFxOn() ? "включено: звук изменён" : "выключено, звук как есть", V.eqIsOn() || V.soundFxOn(), () => {
         V.sheet.close();
         V.openEqualizer();
       })),

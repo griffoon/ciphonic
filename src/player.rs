@@ -22,6 +22,16 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use symphonia::core::units::Time;
 
+const MIN_SPEED: f32 = 0.5;
+const MAX_SPEED: f32 = 2.0;
+/// How often the worker asks Windows which output device is the default.
+const DEVICE_CHECK: Duration = Duration::from_secs(1);
+
+fn speed(shared: &Shared) -> f32 {
+    let speed = f32::from_bits(shared.speed.load(Ordering::Relaxed));
+    if speed > 0.0 { speed } else { 1.0 }
+}
+
 /// How much decoded audio to keep ahead of the sound card, in seconds.
 const BUFFER_SECONDS: f64 = 0.5;
 
@@ -60,6 +70,13 @@ struct Shared {
     stem: Mutex<Option<Arc<crate::vocals::Stem>>>,
     /// How much vocal to take out, f32 bits: 0 = original.
     vocal_cut: AtomicU32,
+    /// Playback rate as f32 bits; set to 1.0 at start. Pitch moves with it (nightcore, slowed).
+    speed: AtomicU32,
+    /// Reverb amount 0…1 as f32 bits.
+    reverb_amount: AtomicU32,
+    reverb: Mutex<crate::reverb::Reverb>,
+    /// Set by the output stream when its device fails (unplugged); the worker reopens.
+    device_lost: AtomicBool,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -81,6 +98,7 @@ impl Player {
     pub fn start() -> Result<Self, String> {
         let shared = Arc::new(Shared::default());
         shared.volume.store(1.0f32.to_bits(), Ordering::Relaxed);
+        shared.speed.store(1.0f32.to_bits(), Ordering::Relaxed);
         let (tx, rx) = mpsc::channel();
         let (ready_tx, ready_rx) = mpsc::channel();
         let worker = Arc::clone(&shared);
@@ -118,6 +136,20 @@ impl Player {
         lock(&self.shared.eq).set_gains(gains);
     }
 
+    /// Speed with pitch: 1.25 = nightcore, 0.8 = slowed. Restarts the buffer at the current
+    /// position so the change is heard at once.
+    pub fn set_speed(&self, speed: f32) -> Result<(), String> {
+        let speed = if speed.is_finite() { speed.clamp(MIN_SPEED, MAX_SPEED) } else { 1.0 };
+        let position = self.status().position;
+        self.shared.speed.store(speed.to_bits(), Ordering::Relaxed);
+        self.seek(position)
+    }
+
+    pub fn set_reverb(&self, amount: f32) {
+        let amount = if amount.is_finite() { amount.clamp(0.0, 1.0) } else { 0.0 };
+        self.shared.reverb_amount.store(amount.to_bits(), Ordering::Relaxed);
+    }
+
     pub fn set_stem(&self, stem: Option<Arc<crate::vocals::Stem>>) {
         *lock(&self.shared.stem) = stem;
     }
@@ -150,7 +182,7 @@ impl Player {
         let frames = self.shared.frames.load(Ordering::Relaxed) as f64;
         let base = self.shared.base_millis.load(Ordering::Relaxed) as f64 / 1000.0;
         Status {
-            position: base + frames / rate,
+            position: base + frames * f64::from(speed(&self.shared)) / rate,
             duration: self.shared.duration_millis.load(Ordering::Relaxed) as f64 / 1000.0,
             playing: self.shared.playing.load(Ordering::Relaxed),
             ended: self.shared.ended.load(Ordering::Relaxed),
@@ -159,19 +191,52 @@ impl Player {
 }
 
 fn run(shared: Arc<Shared>, rx: mpsc::Receiver<Cmd>, ready: mpsc::Sender<Result<(), String>>) {
-    let (_output, out_rate, out_ch) = match open_output(&shared) {
-        Ok(opened) => {
+    let (mut output, mut out_rate, mut out_ch) = match open_output(&shared) {
+        Ok((stream, rate, channels)) => {
             let _ = ready.send(Ok(()));
-            opened
+            (Some(stream), rate, channels)
         }
         Err(e) => {
             let _ = ready.send(Err(e));
             return;
         }
     };
+    let mut device = default_device_name();
+    let mut last_check = std::time::Instant::now();
     let mut session: Option<Session> = None;
 
     loop {
+        if last_check.elapsed() >= DEVICE_CHECK {
+            last_check = std::time::Instant::now();
+            let now = default_device_name();
+            if now != device || shared.device_lost.load(Ordering::Relaxed) {
+                // Keep the place in the track: the new device may run at another rate.
+                let position = base_position(&shared);
+                // Close the old stream first: some drivers refuse a second one on the device.
+                output = None;
+                match open_output(&shared) {
+                    Ok((stream, rate, channels)) => {
+                        shared.device_lost.store(false, Ordering::Relaxed);
+                        device = now;
+                        output = Some(stream);
+                        out_rate = rate;
+                        out_ch = channels;
+                        if let Some(current) = session.as_mut() {
+                            current.out_rate = rate;
+                            current.out_ch = channels;
+                            if current.seek(position).is_ok() {
+                                reset(&shared, position);
+                            }
+                        }
+                    }
+                    // No device right now (all unplugged): the next check tries again.
+                    Err(e) => eprintln!("[audio] reopen: {e}"),
+                }
+            }
+        }
+        if output.is_none() {
+            thread::sleep(Duration::from_millis(50));
+        }
         match rx.try_recv() {
             Ok(cmd) => apply(cmd, &shared, &mut session, out_rate, out_ch),
             Err(mpsc::TryRecvError::Disconnected) => break,
@@ -237,6 +302,17 @@ fn reset(shared: &Shared, at_seconds: f64) {
     shared.ended.store(false, Ordering::Relaxed);
 }
 
+/// Where playback is, in track seconds.
+fn base_position(shared: &Shared) -> f64 {
+    let rate = f64::from(shared.out_rate.load(Ordering::Relaxed).max(1));
+    shared.base_millis.load(Ordering::Relaxed) as f64 / 1000.0
+        + shared.frames.load(Ordering::Relaxed) as f64 * f64::from(speed(shared)) / rate
+}
+
+fn default_device_name() -> Option<String> {
+    cpal::default_host().default_output_device().and_then(|d| d.name().ok())
+}
+
 fn buffered(shared: &Shared) -> usize {
     lock(&shared.buffer).len()
 }
@@ -259,11 +335,15 @@ fn open_output(shared: &Arc<Shared>) -> Result<(cpal::Stream, u32, usize), Strin
     shared.out_rate.store(rate, Ordering::Relaxed);
 
     let callback_shared = Arc::clone(shared);
+    let error_shared = Arc::clone(shared);
     let stream = device
         .build_output_stream(
             &config,
             move |data: &mut [f32], _| fill(data, &callback_shared, channels),
-            |e| eprintln!("[audio] output: {e}"),
+            move |e| {
+                eprintln!("[audio] output: {e}");
+                error_shared.device_lost.store(true, Ordering::Relaxed);
+            },
             None,
         )
         .map_err(|e| e.to_string())?;
@@ -281,9 +361,8 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
     let cut = f32::from_bits(shared.vocal_cut.load(Ordering::Relaxed));
     let stem = if cut > 0.001 { shared.stem.try_lock().ok().and_then(|s| s.clone()) } else { None };
     let out_rate = f64::from(shared.out_rate.load(Ordering::Relaxed).max(1));
-    let played = shared.base_millis.load(Ordering::Relaxed) as f64 / 1000.0
-        + shared.frames.load(Ordering::Relaxed) as f64 / out_rate;
-    let step = stem.as_ref().map_or(0.0, |s| f64::from(s.rate) / out_rate);
+    let played = base_position(shared);
+    let step = stem.as_ref().map_or(0.0, |s| f64::from(s.rate) / out_rate * f64::from(speed(shared)));
     let mut stem_pos = played * stem.as_ref().map_or(0.0, |s| f64::from(s.rate));
 
     let mut buffer = lock(&shared.buffer);
@@ -306,6 +385,10 @@ fn fill(data: &mut [f32], shared: &Shared, channels: usize) {
         let mut eq = lock(&shared.eq);
         eq.set_rate(shared.out_rate.load(Ordering::Relaxed));
         eq.process(data, channels);
+    }
+    {
+        let amount = f32::from_bits(shared.reverb_amount.load(Ordering::Relaxed));
+        lock(&shared.reverb).process(data, channels, shared.out_rate.load(Ordering::Relaxed), amount);
     }
     if frames > 0 {
         shared.frames.fetch_add(frames, Ordering::Relaxed);
@@ -410,7 +493,7 @@ impl Session {
         let mut interleaved = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
         interleaved.copy_interleaved_ref(decoded);
         let in_ch = spec.channels.count().max(1);
-        self.resampler.step = f64::from(spec.rate) / f64::from(self.out_rate);
+        self.resampler.step = f64::from(spec.rate) / f64::from(self.out_rate) * f64::from(speed(shared));
 
         let mut resampled = Vec::new();
         self.resampler.process(interleaved.samples(), in_ch, &mut resampled);
