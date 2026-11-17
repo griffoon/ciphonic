@@ -248,7 +248,7 @@
   }
 
   async function renderPoster(track) {
-    await document.fonts.load('84px "Unbounded"');
+    await document.fonts.load('84px "Alumni Sans"');
     const canvas = document.createElement("canvas");
     canvas.width = POSTER_W;
     canvas.height = POSTER_H;
@@ -279,8 +279,8 @@
 
     let ty = y + side + 56;
     ctx.fillStyle = "#fff";
-    const artist = fitText(ctx, track.artists, '"Unbounded"', 84, 40, POSTER_W - PAD * 2, 2);
-    ctx.font = `${artist.size}px "Unbounded"`;
+    const artist = fitText(ctx, track.artists, '"Alumni Sans"', 84, 40, POSTER_W - PAD * 2, 2);
+    ctx.font = `${artist.size}px "Alumni Sans"`;
     for (const line of artist.lines) { ctx.fillText(line, PAD, ty); ty += artist.size * 1.12; }
 
     ctx.fillStyle = "rgba(255,255,255,.7)";
