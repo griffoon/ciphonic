@@ -68,7 +68,7 @@
       h("div.login-column",
         h("div.login-spacer"),
         h("img.login-logo", { src: "img/logo.png", alt: "" }),
-        h("img.login-wordmark", { src: "img/wordmark.png", alt: "C1PH0N1C" }),
+        h("div.login-name", "C1PH0N1C"),
         h("div.login-sub", "Только музыка. Ничего лишнего."),
         h("div.login-spacer"),
         button,
