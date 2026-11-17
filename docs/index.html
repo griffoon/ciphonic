@@ -54,14 +54,14 @@
 
   /* Text that must read over the moving glyphs sits on a tight dark plate, line by line. */
   .plate { background: var(--plate); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 0.04em 0.22em; border-radius: 0.12em; backdrop-filter: blur(6px); }
-  .label { font: 600 13px var(--mono); color: var(--acid); }
+  .label { font: 600 13px var(--mono); letter-spacing: 0.02em; color: var(--acid); }
   .label .plate { padding: 3px 8px; }
-  h1, h2 { margin: 16px 0 18px; font-family: var(--display); font-weight: 400; line-height: 1.3; }
+  h1, h2 { margin: 16px 0 18px; font-family: var(--display); font-weight: 400; line-height: 1.05; letter-spacing: -0.025em; }
   h2 .plate { padding: 0.1em 0.25em 0.06em; }
-  h1 { font-size: clamp(38px, 10vw, 150px); letter-spacing: -0.01em; line-height: 1; }
+  h1 { font-size: clamp(38px, 10vw, 150px); letter-spacing: -0.04em; line-height: 0.95; }
   h2 { font-size: clamp(36px, 6.4vw, 84px); }
   h1 i { font-style: normal; color: var(--acid); text-shadow: 0 0 24px rgba(var(--acid-rgb), 0.5); }
-  .lead { margin: 0; font-size: clamp(17px, 2.2vw, 22px); line-height: 1.6; color: rgba(244, 244, 242, 0.9); max-width: 640px; }
+  .lead { margin: 0; font-size: clamp(17px, 2.2vw, 22px); line-height: 1.5; letter-spacing: -0.005em; color: rgba(244, 244, 242, 0.9); max-width: 640px; }
   .slide.center .lead { margin: 0 auto; }
   .lead .plate { padding: 0.12em 0.35em; }
 
@@ -74,7 +74,7 @@
     font: 700 15px var(--sans); text-decoration: none; cursor: pointer; border: 0;
     transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), box-shadow 0.2s ease, background 0.2s ease;
   }
-  .btn:active { transform: scale(0.96); }
+  .btn:active { transform: scale(0.96); transition-duration: 90ms; }
   .btn-acid { background: var(--acid); color: #000; box-shadow: 0 0 40px rgba(var(--acid-rgb), 0.35); }
   .btn-acid:hover { box-shadow: 0 0 64px rgba(var(--acid-rgb), 0.6); }
   .btn-ghost { background: var(--plate); color: var(--fg); box-shadow: inset 0 0 0 1px rgba(244, 244, 242, 0.25); }
@@ -95,7 +95,7 @@
   .acid { color: var(--acid); }
 
   .karaoke { margin-top: 30px; }
-  .karaoke .line { display: block; width: fit-content; margin: 4px 0; font: clamp(24px, 4.2vw, 46px)/1.25 var(--display); color: rgba(244, 244, 242, 0.3); background-color: var(--plate); padding: 0.04em 0.3em; border-radius: 0.1em; transition: color 0.4s ease; }
+  .karaoke .line { display: block; width: fit-content; margin: 4px 0; font: clamp(24px, 4.2vw, 46px)/1.2 var(--display); letter-spacing: -0.02em; color: rgba(244, 244, 242, 0.3); background-color: var(--plate); padding: 0.04em 0.3em; border-radius: 0.1em; transition: color 0.4s ease; }
   .karaoke .line.past { color: rgba(244, 244, 242, 0.5); }
   .karaoke .line.now {
     color: transparent;
@@ -129,11 +129,11 @@
   .get { font: 700 13px var(--sans); text-decoration: none; background: var(--acid); color: #000; padding: 9px 16px; border-radius: 999px; }
   .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 18px 16px 22px; pointer-events: none; }
   .nav > * { pointer-events: auto; }
-  .count { font: 600 13px var(--mono); background: var(--plate); padding: 6px 10px; border-radius: 8px; min-width: 76px; text-align: center; }
+  .count { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; background: var(--plate); padding: 6px 10px; border-radius: 8px; min-width: 76px; text-align: center; }
   .count b { color: var(--acid); font-weight: 600; }
   .arrow { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; background: var(--plate); box-shadow: inset 0 0 0 1px var(--faint); font: 600 18px var(--mono); transition: box-shadow 0.2s ease, transform 0.2s ease; }
   .arrow:hover { box-shadow: inset 0 0 0 1px var(--acid); }
-  .arrow:active { transform: scale(0.92); }
+  .arrow:active { transform: scale(0.92); transition-duration: 90ms; }
   .arrow:disabled { opacity: 0.3; cursor: default; }
   .tabs { display: flex; gap: 2px; background: var(--plate); padding: 4px; border-radius: 999px; }
   .tabs button { border: 0; background: none; cursor: pointer; padding: 6px 11px; border-radius: 999px; font: 600 12px var(--mono); color: var(--dim); transition: background 0.25s ease, color 0.25s ease; }

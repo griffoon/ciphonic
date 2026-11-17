@@ -133,17 +133,25 @@ window.V = window.V || {};
 
   // The app's springs, as CSS variables so stylesheets can use them.
   const springs = {
-    snappy: V.spring(0.3, 0.1),
-    spring: V.spring(0.45, 0.15),
+    // Apple's default is critically damped (no overshoot); bounce is for things the user threw.
+    snappy: V.spring(0.3, 0),
+    spring: V.spring(0.4, 0),
     bouncy: V.spring(0.55, 0.3),
-    sheet: V.spring(0.5, 0),
-    soft: V.spring(0.6, 0.15),
+    drawer: V.spring(0.35, 0.2),
+    sheet: V.spring(0.45, 0),
+    soft: V.spring(0.55, 0),
   };
   V.springs = springs;
   for (const [name, { easing, ms }] of Object.entries(springs)) {
     document.documentElement.style.setProperty(`--${name}`, easing);
     document.documentElement.style.setProperty(`--${name}-ms`, `${ms}ms`);
   }
+
+  /// Where a flick would come to rest: Apple's scroll-deceleration projection (px/ms in, px out).
+  V.project = (velocity, rate = 0.998) => (velocity * rate) / (1 - rate);
+  /// Soft edge: the further past a bound, the less the element follows.
+  V.rubberband = (overshoot, dimension, constant = 0.55) =>
+    (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
 
   /// Animates a number with a critically damped spring (for scroll follow and drags).
   /// `onDone` runs once, when the value has landed; the returned function cancels without it.

@@ -356,6 +356,7 @@
     let startY = 0, lastY = 0, lastT = 0, velocity = 0, dragging = false;
     grab.addEventListener("pointerdown", (event) => {
       dragging = true;
+      velocity = 0;
       startY = lastY = event.clientY;
       lastT = performance.now();
       grab.setPointerCapture(event.pointerId);
@@ -363,24 +364,32 @@
     });
     grab.addEventListener("pointermove", (event) => {
       if (!dragging) return;
-      const dy = Math.max(0, event.clientY - startY);
+      const raw = event.clientY - startY;
       const now = performance.now();
-      velocity = (event.clientY - lastY) / Math.max(1, now - lastT);
+      // Smoothed over the last few moves, so one jittery sample does not decide the release.
+      const sample = (event.clientY - lastY) / Math.max(1, now - lastT);
+      velocity = velocity * 0.4 + sample * 0.6;
       lastY = event.clientY;
       lastT = now;
+      // Up past the top resists instead of stopping dead.
+      const dy = raw >= 0 ? raw : V.rubberband(raw, sheet.panel.offsetHeight);
       sheet.panel.style.transform = `translateY(${dy}px)`;
-      if (dy > 4) grab._dragged = true;
+      if (Math.abs(raw) > 4) grab._dragged = true;
     });
     const end = (event) => {
       if (!dragging) return;
       dragging = false;
-      const dy = Math.max(0, event.clientY - startY);
+      const raw = event.clientY - startY;
+      const dy = raw >= 0 ? raw : V.rubberband(raw, sheet.panel.offsetHeight);
       sheet.panel.style.transition = "";
-      if (dy > sheet.panel.offsetHeight * 0.3 || velocity > 0.8) {
+      // Decide by where the flick would land, not where the finger let go.
+      if (raw + V.project(velocity, 0.99) > sheet.panel.offsetHeight * 0.4 && velocity >= 0) {
         V.sheet.close(sheet);
       } else {
+        // A thrown sheet overshoots a little on its way home; a gently released one just settles.
+        const back = Math.abs(velocity) > 0.3 ? V.springs.drawer : V.springs.sheet;
         sheet.panel.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
-          { duration: V.springs.bouncy.ms, easing: V.springs.bouncy.easing });
+          { duration: back.ms, easing: back.easing });
         sheet.panel.style.transform = "";
       }
       // A drag is not a click on the grab (which would close).
